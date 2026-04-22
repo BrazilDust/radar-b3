@@ -334,19 +334,97 @@ function BlogPage() {
   );
 }
 
+// ─── STATUS DO PREGÃO ─────────────────────────────────────────────────────────
+function getPregaoStatus() {
+  const agora = new Date();
+  const diaSemana = agora.getDay(); // 0=Dom, 6=Sab
+  const hora = agora.getHours();
+  const min = agora.getMinutes();
+  const totalMin = hora * 60 + min;
+
+  const fimDeSemana = diaSemana === 0 || diaSemana === 6;
+
+  if (fimDeSemana) {
+    return {
+      cor: "#555",
+      pulsar: false,
+      label: "MERCADO FECHADO",
+      sublabel: "Pregão retorna na segunda-feira às 10h",
+      bgBorder: "rgba(255,255,255,0.06)",
+    };
+  }
+
+  if (totalMin >= 9 * 60 && totalMin < 10 * 60) {
+    return {
+      cor: "#f0a500",
+      pulsar: false,
+      label: "PRÉ-ABERTURA · B3",
+      sublabel: "Pregão abre às 10h00",
+      bgBorder: "rgba(240,165,0,0.2)",
+    };
+  }
+
+  if (totalMin >= 10 * 60 && totalMin < 17 * 60) {
+    return {
+      cor: "#00e87a",
+      pulsar: true,
+      label: "AO VIVO · B3",
+      sublabel: null,
+      bgBorder: "rgba(0,232,122,0.15)",
+    };
+  }
+
+  if (totalMin >= 17 * 60 && totalMin < 17 * 60 + 30) {
+    return {
+      cor: "#f0a500",
+      pulsar: false,
+      label: "LEILÃO DE FECHAMENTO",
+      sublabel: "Pregão encerra às 17h30",
+      bgBorder: "rgba(240,165,0,0.2)",
+    };
+  }
+
+  // Após 17h30
+  const proximoDia = diaSemana === 5 ? "segunda-feira" : "amanhã";
+  return {
+    cor: "#555",
+    pulsar: false,
+    label: "MERCADO FECHADO",
+    sublabel: `Pregão retorna ${proximoDia} às 10h`,
+    bgBorder: "rgba(255,255,255,0.06)",
+  };
+}
+
 // ─── PÁGINA DASHBOARD ─────────────────────────────────────────────────────────
 function DashboardPage({ animate, timeStr, altas, baixas, loading, erro }) {
+  const status = getPregaoStatus();
+
   return (
     <>
       <div style={{ position:"relative", zIndex:2, textAlign:"center", marginBottom:"28px" }}>
-        <div style={{ display:"inline-flex", alignItems:"center", gap:"10px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:"6px", padding:"4px 14px", marginBottom:"10px" }}>
-          <div style={{ width:"6px", height:"6px", borderRadius:"50%", background: erro ? "#ff4444" : "#00e87a", boxShadow:`0 0 8px ${erro ? "#ff4444" : "#00e87a"}`, animation:"pulse 1.5s infinite" }} />
-          <span style={{ fontSize:"10px", letterSpacing:"0.2em", color:"rgba(255,255,255,0.4)", textTransform:"uppercase" }}>
-            {erro ? "ERRO AO CARREGAR" : loading ? "CARREGANDO..." : "AO VIVO · B3"}
+        <div style={{
+          display:"inline-flex", alignItems:"center", gap:"10px",
+          background:"rgba(255,255,255,0.03)",
+          border:`1px solid ${erro ? "rgba(255,68,68,0.3)" : status.bgBorder}`,
+          borderRadius:"6px", padding:"4px 14px", marginBottom:"10px",
+        }}>
+          <div style={{
+            width:"6px", height:"6px", borderRadius:"50%",
+            background: erro ? "#ff4444" : status.cor,
+            boxShadow: (erro || status.pulsar) ? `0 0 8px ${erro ? "#ff4444" : status.cor}` : "none",
+            animation: (erro || status.pulsar) ? "pulse 1.5s infinite" : "none",
+            transition: "background 0.5s",
+          }} />
+          <span style={{ fontSize:"10px", letterSpacing:"0.2em", color: erro ? "rgba(255,100,100,0.7)" : status.cor === "#555" ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.6)", textTransform:"uppercase", transition:"color 0.5s" }}>
+            {erro ? "ERRO AO CARREGAR" : loading ? "CARREGANDO..." : status.label}
           </span>
         </div>
+
         <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", letterSpacing:"0.1em" }}>
-          Maiores movimentações do dia {timeStr ? `· Atualizado às ${timeStr}` : ""}
+          {status.sublabel
+            ? status.sublabel
+            : `Maiores movimentações do dia ${timeStr ? `· Atualizado às ${timeStr}` : ""}`
+          }
         </p>
       </div>
 
