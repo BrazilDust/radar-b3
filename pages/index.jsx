@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 
 // ─── SUBSTITUA PELO SEU TOKEN DA BRAPI ───────────────────────────────────────
-const BRAPI_TOKEN = "kw46S3LE73zni8i6q5Z3d8";
-
+const BRAPI_TOKEN = process.env.NEXT_PUBLIC_BRAPI_TOKEN;
 // ─── POSTS DO BLOG ────────────────────────────────────────────────────────────
 const blogPosts = [
   {
@@ -69,12 +68,6 @@ function formatSetor(setor) {
     "Retail Trade": "Varejo",
     "Distribution Services": "Distribuição",
     "Miscellaneous": null,
-    "Communications": "Telecom",
-    "Telecommunication Services": "Telecom",
-    "Financial Conglomerates": "Finanças",
-    "Investment Trusts/Mutual Funds": "Fundos",
-    "Non-Energy Minerals": "Mineração",
-    "Real Estate": "Imóveis",
   };
   return map[setor] || setor.split(" ")[0];
 }
@@ -106,8 +99,8 @@ function StockCard({ stock, rank, tipo, animate }) {
       border: `1px solid ${isAlta ? bdAlta : bdBaixa}`,
       borderRadius: "10px", padding: "12px 14px",
       display: "flex", alignItems: "center", gap: "12px",
-      opacity: animate ? 1 : 0,
-      transform: animate ? "translateX(0)" : `translateX(${isAlta ? "-30px" : "30px"})`,
+      opacity: 1,
+      transform: "translateX(0)",
       transition: `all 0.5s cubic-bezier(0.34,1.56,0.64,1) ${rank * 0.07}s`,
       cursor: "default",
     }}>
@@ -427,9 +420,9 @@ function DashboardPage({ animate, timeStr, altas, baixas, loading, erro }) {
         </div>
 
         <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", letterSpacing:"0.1em" }}>
-          {status.sublabel
-            ? status.sublabel
-            : `Maiores movimentações do dia ${timeStr ? `· Atualizado às ${timeStr}` : ""}`
+          {status.pulsar
+            ? `Maiores movimentações do dia ${timeStr ? `· Atualizado às ${timeStr}` : ""}`
+            : ""
           }
         </p>
       </div>
@@ -518,7 +511,7 @@ export default function App() {
       setBaixas(topBaixas);
       setLastUpdate(new Date());
       setLoading(false);
-      setTimeout(() => setAnimate(true), 100);
+      setAnimate(true);
 
     } catch (e) {
       setErro("Não foi possível carregar os dados. Tentando novamente...");
