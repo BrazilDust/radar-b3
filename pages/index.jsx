@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
 
-// ─── SUBSTITUA PELO SEU TOKEN DA BRAPI ───────────────────────────────────────
 const BRAPI_TOKEN = process.env.NEXT_PUBLIC_BRAPI_TOKEN;
 
-// ─── POSTS DO BLOG ────────────────────────────────────────────────────────────
 const blogPosts = [
+  {
+    id: 5, tag: "Análise", tagColor: "#7c8aff",
+    titulo: "Análise Técnica ou Fundamentalista: qual usar para operar na B3?",
+    resumo: "Se você já ficou em dúvida sobre qual método usar antes de comprar uma ação, este artigo é para você. Entenda as diferenças, as aplicações e como combinar as duas abordagens.",
+    tempo: "10 min", data: "22 Abr 2025",
+    conteudo: `Se você já ficou em dúvida sobre qual método usar antes de comprar uma ação, este artigo é para você. O mercado financeiro desenvolveu duas grandes escolas de análise — a fundamentalista e a técnica — e entender a diferença entre elas pode mudar completamente a forma como você toma decisões de investimento.\n\nO mercado de ações abriga uma enorme variedade de empresas, com características bastante distintas entre si. Há empresas de grande capitalização (large caps), consolidadas e que distribuem dividendos regulares. Há empresas de menor porte (small caps), com maior potencial de crescimento e volatilidade. Diante dessa diversidade, surge a questão central: como decidir em qual ativo investir e qual o momento certo?\n\nA ANÁLISE FUNDAMENTALISTA\n\nA análise fundamentalista parte da premissa de que o preço de uma ação reflete, no longo prazo, o valor real do negócio. Seu objetivo é estimar o valor intrínseco de uma empresa e compará-lo ao preço de mercado atual.\n\nO analista fundamentalista investiga os resultados financeiros (receita, lucro, margens), indicadores de valor como P/L e P/VPA, o posicionamento competitivo e o cenário macroeconômico. É a abordagem preferida por investidores de longo prazo que mantêm posições por meses ou anos.\n\nA ANÁLISE TÉCNICA\n\nA análise técnica parte de uma premissa diferente: toda a informação relevante já está refletida no preço. O analista técnico estuda o comportamento histórico dos preços para identificar padrões que antecipem movimentos futuros.\n\nBaseada na Teoria de Dow, utiliza gráficos de candlesticks, suportes, resistências e indicadores como médias móveis, MACD e RSI. Para o trader técnico, a pergunta não é "essa é uma boa empresa?", mas "esse é o momento certo para comprar ou vender?". É a abordagem preferida por traders de swing trade e day trade.\n\nCOMO COMBINAR AS DUAS ABORDAGENS\n\nMuitos investidores experientes combinam as duas escolas. A estratégia mais comum é usar a análise fundamentalista como filtro de seleção e a análise técnica como ferramenta de timing.\n\nExemplo prático com ITUB4: o trader filtra bancos com ROE acima de 18% e histórico de dividendos — restando ITUB4 e BBDC4. Em seguida, aplica análise técnica e observa que ITUB4 passou por correção de 12% e se aproxima de suporte relevante coincidindo com a média móvel de 21 períodos. Um candlestick de reversão (martelo) se forma nessa região.\n\nO setup definido: entrada em R$ 27,80, stop em R$ 26,90 e alvos em R$ 29,80 e R$ 31,20 — relação risco/retorno de 1:2,2. A fundamentação qualitativa reforça a convicção, mas não altera os parâmetros técnicos de risco.\n\nAmbas as abordagens têm histórico comprovado de sucesso. A escolha entre elas — ou a combinação de ambas — depende do seu perfil de risco, horizonte de investimento e estilo operacional.`,
+  },
   {
     id: 1, tag: "Básico", tagColor: "#00e87a",
     titulo: "O que são as maiores altas da B3?",
@@ -35,7 +40,6 @@ const blogPosts = [
   },
 ];
 
-// ─── UTILITÁRIOS ──────────────────────────────────────────────────────────────
 function formatVolume(v) {
   if (!v) return "—";
   if (v >= 1e9) return `R$ ${(v / 1e9).toFixed(1)}B`;
@@ -47,7 +51,6 @@ function formatPreco(p) {
   return p.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-// ─── HELPERS DE SETOR E PORTE ─────────────────────────────────────────────────
 function formatSetor(setor) {
   if (!setor) return null;
   const map = {
@@ -57,6 +60,7 @@ function formatSetor(setor) {
     "Health Technology": "Saúde",
     "Health Services": "Saúde",
     "Finance": "Finanças",
+    "Financial Conglomerates": "Finanças",
     "Technology Services": "Tecnologia",
     "Electronic Technology": "Tecnologia",
     "Energy Minerals": "Energia",
@@ -68,19 +72,36 @@ function formatSetor(setor) {
     "Commercial Services": "Serviços",
     "Retail Trade": "Varejo",
     "Distribution Services": "Distribuição",
+    "Communications": "Telecom",
+    "Telecommunication Services": "Telecom",
+    "Non-Energy Minerals": "Mineração",
+    "Real Estate": "Imóveis",
     "Miscellaneous": null,
+    "Investment Trusts/Mutual Funds": null,
   };
-  return map[setor] || setor.split(" ")[0];
+  return map[setor] !== undefined ? map[setor] : setor.split(" ")[0];
 }
 
 function formatPorte(marketCap) {
   if (!marketCap) return null;
-  if (marketCap >= 10e9)  return "Large Cap";
-  if (marketCap >= 2e9)   return "Mid Cap";
+  if (marketCap >= 10e9) return "Large Cap";
+  if (marketCap >= 2e9) return "Mid Cap";
   return "Small Cap";
 }
 
-// ─── STOCK CARD ───────────────────────────────────────────────────────────────
+function getPregaoStatus() {
+  const agora = new Date();
+  const diaSemana = agora.getDay();
+  const totalMin = agora.getHours() * 60 + agora.getMinutes();
+  const fimDeSemana = diaSemana === 0 || diaSemana === 6;
+
+  if (fimDeSemana) return { cor:"#555", pulsar:false, label:"MERCADO FECHADO", bgBorder:"rgba(255,255,255,0.06)" };
+  if (totalMin >= 540 && totalMin < 600) return { cor:"#f0a500", pulsar:false, label:"PRÉ-ABERTURA · B3", bgBorder:"rgba(240,165,0,0.2)" };
+  if (totalMin >= 600 && totalMin < 1020) return { cor:"#00e87a", pulsar:true, label:"AO VIVO · B3", bgBorder:"rgba(0,232,122,0.15)" };
+  if (totalMin >= 1020 && totalMin < 1050) return { cor:"#f0a500", pulsar:false, label:"LEILÃO DE FECHAMENTO", bgBorder:"rgba(240,165,0,0.2)" };
+  return { cor:"#555", pulsar:false, label:"MERCADO FECHADO", bgBorder:"rgba(255,255,255,0.06)" };
+}
+
 function StockCard({ stock, rank, tipo, animate }) {
   const isAlta = tipo === "alta";
   const intensity = 1 - (rank - 1) / 10;
@@ -88,7 +109,6 @@ function StockCard({ stock, rank, tipo, animate }) {
   const bgBaixa = `rgba(${Math.round(200+intensity*55)},${Math.round(20+intensity*10)},${Math.round(30+intensity*10)},${0.08+intensity*0.10})`;
   const bdAlta  = `rgba(0,${Math.round(210+intensity*45)},100,${0.2+intensity*0.4})`;
   const bdBaixa = `rgba(${Math.round(220+intensity*35)},40,50,${0.2+intensity*0.4})`;
-
   const cor = isAlta ? "#00e87a" : "#ff5050";
   const corNum = isAlta ? "#00ff8c" : "#ff4444";
   const setor = formatSetor(stock.setor);
@@ -98,32 +118,23 @@ function StockCard({ stock, rank, tipo, animate }) {
     <div style={{
       background: isAlta ? bgAlta : bgBaixa,
       border: `1px solid ${isAlta ? bdAlta : bdBaixa}`,
-      borderRadius: "10px", padding: "12px 14px",
-      display: "flex", alignItems: "center", gap: "12px",
-      opacity: 1,
-      transform: "translateX(0)",
-      transition: `all 0.5s cubic-bezier(0.34,1.56,0.64,1) ${rank * 0.07}s`,
-      cursor: "default",
+      borderRadius:"10px", padding:"12px 14px",
+      display:"flex", alignItems:"center", gap:"12px",
+      transition:`all 0.5s cubic-bezier(0.34,1.56,0.64,1) ${rank * 0.07}s`,
+      cursor:"default",
     }}>
-      {/* Rank */}
-      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color: isAlta?"rgba(0,230,120,0.45)":"rgba(255,80,80,0.45)", width:"18px", minWidth:"18px", textAlign:"center", flexShrink:0, fontWeight:600 }}>
+      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:isAlta?"rgba(0,230,120,0.45)":"rgba(255,80,80,0.45)", width:"18px", minWidth:"18px", textAlign:"center", flexShrink:0, fontWeight:600 }}>
         {rank}
       </div>
-
-      {/* Ticker + Variação */}
       <div style={{ display:"flex", flexDirection:"column", gap:"3px", width:"90px", minWidth:"90px", flexShrink:0 }}>
-        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"15px", fontWeight:800, color: cor, letterSpacing:"0.04em", whiteSpace:"nowrap", lineHeight:1 }}>
+        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"15px", fontWeight:800, color:cor, letterSpacing:"0.04em", whiteSpace:"nowrap", lineHeight:1 }}>
           {stock.ticker}
         </div>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", fontWeight:700, color: corNum, lineHeight:1 }}>
-          {isAlta ? "+" : ""}{stock.variacao.toFixed(2)}%
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", fontWeight:700, color:corNum, lineHeight:1 }}>
+          {isAlta?"+":""}{stock.variacao.toFixed(2)}%
         </div>
       </div>
-
-      {/* Divider */}
       <div style={{ width:"1px", height:"34px", background:"rgba(255,255,255,0.08)", flexShrink:0 }} />
-
-      {/* Preço + Volume */}
       <div style={{ display:"flex", flexDirection:"column", gap:"3px", flex:1 }}>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", color:"rgba(255,255,255,0.85)", fontWeight:500, whiteSpace:"nowrap" }}>
           {formatPreco(stock.preco)}
@@ -132,50 +143,26 @@ function StockCard({ stock, rank, tipo, animate }) {
           Vol {formatVolume(stock.volume)}
         </div>
       </div>
-
-      {/* Setor + Porte */}
       <div style={{ display:"flex", flexDirection:"column", gap:"5px", alignItems:"flex-end", flexShrink:0 }}>
         {setor && (
-          <div style={{
-            background: `${cor}15`,
-            border: `1px solid ${cor}35`,
-            borderRadius:"4px", padding:"2px 7px",
-            fontFamily:"'DM Mono',monospace", fontSize:"9px",
-            color: `${cor}CC`, letterSpacing:"0.07em",
-            whiteSpace:"nowrap", textTransform:"uppercase",
-          }}>
+          <div style={{ background:`${cor}15`, border:`1px solid ${cor}35`, borderRadius:"4px", padding:"2px 7px", fontFamily:"'DM Mono',monospace", fontSize:"9px", color:`${cor}CC`, letterSpacing:"0.07em", whiteSpace:"nowrap", textTransform:"uppercase" }}>
             {setor}
           </div>
         )}
         {porte && (
-          <div style={{
-            fontFamily:"'DM Mono',monospace", fontSize:"9px",
-            color:"rgba(255,255,255,0.25)", letterSpacing:"0.05em",
-          }}>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"9px", color:"rgba(255,255,255,0.25)", letterSpacing:"0.05em" }}>
             {porte}
           </div>
         )}
-        {!setor && !porte && (
-          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"9px", color:"rgba(255,255,255,0.15)" }}>—</div>
-        )}
       </div>
-
-      {/* Seta */}
-      <div style={{ fontSize:"13px", flexShrink:0, opacity:0.4 }}>{isAlta ? "▲" : "▼"}</div>
+      <div style={{ fontSize:"13px", flexShrink:0, opacity:0.4 }}>{isAlta?"▲":"▼"}</div>
     </div>
   );
 }
 
-// ─── SKELETON CARD (carregando) ───────────────────────────────────────────────
 function SkeletonCard({ rank }) {
   return (
-    <div style={{
-      background: "rgba(255,255,255,0.03)",
-      border: "1px solid rgba(255,255,255,0.06)",
-      borderRadius: "10px", padding: "12px 14px",
-      display: "flex", alignItems: "center", gap: "12px",
-      animation: "pulse 1.5s infinite",
-    }}>
+    <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:"10px", padding:"12px 14px", display:"flex", alignItems:"center", gap:"12px", animation:"pulse 1.5s infinite" }}>
       <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"rgba(255,255,255,0.2)", width:"18px", minWidth:"18px", textAlign:"center" }}>{rank}</div>
       <div style={{ display:"flex", flexDirection:"column", gap:"6px", width:"90px", minWidth:"90px" }}>
         <div style={{ height:"14px", background:"rgba(255,255,255,0.07)", borderRadius:"4px", width:"60px" }} />
@@ -190,47 +177,30 @@ function SkeletonCard({ rank }) {
   );
 }
 
-// ─── COL HEADER ───────────────────────────────────────────────────────────────
 function ColHeader({ tipo }) {
   const isAlta = tipo === "alta";
   return (
     <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"14px", paddingBottom:"10px", borderBottom:`1px solid ${isAlta?"rgba(0,230,120,0.2)":"rgba(255,70,70,0.2)"}` }}>
-      <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: isAlta?"#00e87a":"#ff4444", boxShadow:`0 0 10px ${isAlta?"#00e87a":"#ff4444"}`, animation:"pulse 2s infinite" }} />
-      <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"13px", letterSpacing:"0.12em", textTransform:"uppercase", color: isAlta?"#00e87a":"#ff4444" }}>
-        {isAlta ? "Maiores Altas" : "Maiores Baixas"}
+      <div style={{ width:"8px", height:"8px", borderRadius:"50%", background:isAlta?"#00e87a":"#ff4444", boxShadow:`0 0 10px ${isAlta?"#00e87a":"#ff4444"}`, animation:"pulse 2s infinite" }} />
+      <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"13px", letterSpacing:"0.12em", textTransform:"uppercase", color:isAlta?"#00e87a":"#ff4444" }}>
+        {isAlta?"Maiores Altas":"Maiores Baixas"}
       </span>
       <span style={{ marginLeft:"auto", fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.3)", letterSpacing:"0.05em" }}>TOP 10</span>
     </div>
   );
 }
 
-// ─── NAVBAR ───────────────────────────────────────────────────────────────────
 function Navbar({ page, setPage }) {
   return (
-    <nav style={{
-      position:"relative", zIndex:10,
-      display:"flex", alignItems:"center", justifyContent:"space-between",
-      maxWidth:"860px", margin:"0 auto 28px",
-      padding:"10px 18px",
-      background:"rgba(255,255,255,0.03)",
-      border:"1px solid rgba(255,255,255,0.08)",
-      borderRadius:"12px",
-    }}>
+    <nav style={{ position:"relative", zIndex:10, display:"flex", alignItems:"center", justifyContent:"space-between", maxWidth:"860px", margin:"0 auto 28px", padding:"10px 18px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:"12px" }}>
       <button onClick={() => setPage("home")} style={{ background:"none", border:"none", cursor:"pointer", padding:0 }}>
         <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"18px", color:"#fff", letterSpacing:"-0.02em" }}>
           RADAR <span style={{ color:"#00e87a" }}>B3</span>
         </span>
       </button>
       <div style={{ display:"flex", gap:"4px" }}>
-        {[{ label:"Dashboard", key:"home" }, { label:"Blog", key:"blog" }].map(({ label, key }) => (
-          <button key={key} onClick={() => setPage(key)} style={{
-            background: page===key ? "rgba(0,232,122,0.1)" : "none",
-            border: page===key ? "1px solid rgba(0,232,122,0.25)" : "1px solid transparent",
-            borderRadius:"8px", padding:"6px 16px", cursor:"pointer",
-            fontFamily:"'DM Mono',monospace", fontSize:"12px", fontWeight:500,
-            color: page===key ? "#00e87a" : "rgba(255,255,255,0.4)",
-            letterSpacing:"0.05em", transition:"all 0.2s",
-          }}>
+        {[{label:"Dashboard",key:"home"},{label:"Blog",key:"blog"}].map(({label,key}) => (
+          <button key={key} onClick={() => setPage(key)} style={{ background:page===key?"rgba(0,232,122,0.1)":"none", border:page===key?"1px solid rgba(0,232,122,0.25)":"1px solid transparent", borderRadius:"8px", padding:"6px 16px", cursor:"pointer", fontFamily:"'DM Mono',monospace", fontSize:"12px", fontWeight:500, color:page===key?"#00e87a":"rgba(255,255,255,0.4)", letterSpacing:"0.05em", transition:"all 0.2s" }}>
             {label}
           </button>
         ))}
@@ -239,92 +209,60 @@ function Navbar({ page, setPage }) {
   );
 }
 
-// ─── BLOG CARD ────────────────────────────────────────────────────────────────
 function BlogCard({ post, onClick, index }) {
   const [hov, setHov] = useState(false);
   return (
-    <div
-      onClick={() => onClick(post)}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        background: hov ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.02)",
-        border: `1px solid ${hov ? "rgba(0,232,122,0.25)" : "rgba(255,255,255,0.07)"}`,
-        borderRadius:"12px", padding:"20px", cursor:"pointer",
-        transition:"all 0.25s ease",
-        transform: hov ? "translateY(-2px)" : "translateY(0)",
-        animation: `fadeUp 0.4s ease ${index * 0.08}s both`,
-      }}
-    >
+    <div onClick={() => onClick(post)} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ background:hov?"rgba(255,255,255,0.05)":"rgba(255,255,255,0.02)", border:`1px solid ${hov?"rgba(0,232,122,0.25)":"rgba(255,255,255,0.07)"}`, borderRadius:"12px", padding:"20px", cursor:"pointer", transition:"all 0.25s ease", transform:hov?"translateY(-2px)":"translateY(0)", animation:`fadeUp 0.4s ease ${index*0.08}s both` }}>
       <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"10px" }}>
-        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", fontWeight:600, color: post.tagColor, background:`${post.tagColor}18`, border:`1px solid ${post.tagColor}40`, borderRadius:"4px", padding:"2px 8px", letterSpacing:"0.08em" }}>
-          {post.tag}
-        </span>
-        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.25)" }}>
-          {post.data} · {post.tempo} de leitura
-        </span>
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", fontWeight:600, color:post.tagColor, background:`${post.tagColor}18`, border:`1px solid ${post.tagColor}40`, borderRadius:"4px", padding:"2px 8px", letterSpacing:"0.08em" }}>{post.tag}</span>
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.25)" }}>{post.data} · {post.tempo} de leitura</span>
       </div>
-      <h3 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"16px", color:"#fff", lineHeight:1.3, marginBottom:"8px", letterSpacing:"-0.01em" }}>
-        {post.titulo}
-      </h3>
-      <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"12px", color:"rgba(255,255,255,0.4)", lineHeight:1.7 }}>
-        {post.resumo}
-      </p>
-      <div style={{ display:"flex", alignItems:"center", gap:"6px", marginTop:"14px", fontFamily:"'DM Mono',monospace", fontSize:"11px", color: hov ? "#00e87a" : "rgba(255,255,255,0.3)", transition:"color 0.2s" }}>
+      <h3 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"16px", color:"#fff", lineHeight:1.3, marginBottom:"8px", letterSpacing:"-0.01em" }}>{post.titulo}</h3>
+      <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"12px", color:"rgba(255,255,255,0.4)", lineHeight:1.7 }}>{post.resumo}</p>
+      <div style={{ display:"flex", alignItems:"center", gap:"6px", marginTop:"14px", fontFamily:"'DM Mono',monospace", fontSize:"11px", color:hov?"#00e87a":"rgba(255,255,255,0.3)", transition:"color 0.2s" }}>
         Ler artigo <span style={{ fontSize:"14px" }}>→</span>
       </div>
     </div>
   );
 }
 
-// ─── BLOG POST VIEW ───────────────────────────────────────────────────────────
-function BlogPostView({ post, onBack }) {
+function BlogPostView({ post, onBack, onDashboard }) {
   return (
     <div style={{ maxWidth:"640px", margin:"0 auto", position:"relative", zIndex:2 }}>
       <button onClick={onBack} style={{ background:"none", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"8px", padding:"6px 14px", cursor:"pointer", fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"rgba(255,255,255,0.4)", marginBottom:"28px", display:"flex", alignItems:"center", gap:"6px" }}>
         ← Voltar ao Blog
       </button>
       <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:"16px" }}>
-        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", fontWeight:600, color: post.tagColor, background:`${post.tagColor}18`, border:`1px solid ${post.tagColor}40`, borderRadius:"4px", padding:"2px 8px" }}>
-          {post.tag}
-        </span>
-        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.25)" }}>
-          {post.data} · {post.tempo} de leitura
-        </span>
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", fontWeight:600, color:post.tagColor, background:`${post.tagColor}18`, border:`1px solid ${post.tagColor}40`, borderRadius:"4px", padding:"2px 8px" }}>{post.tag}</span>
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.25)" }}>{post.data} · {post.tempo} de leitura</span>
       </div>
-      <h1 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(22px,4vw,30px)", color:"#fff", lineHeight:1.2, letterSpacing:"-0.02em", marginBottom:"24px" }}>
-        {post.titulo}
-      </h1>
+      <h1 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(22px,4vw,30px)", color:"#fff", lineHeight:1.2, letterSpacing:"-0.02em", marginBottom:"24px" }}>{post.titulo}</h1>
       <div style={{ height:"1px", background:"linear-gradient(90deg,rgba(0,232,122,0.4),transparent)", marginBottom:"28px" }} />
       {post.conteudo.split("\n\n").map((para, i) => (
-        <p key={i} style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", color:"rgba(255,255,255,0.65)", lineHeight:1.9, marginBottom:"20px" }}>
-          {para}
-        </p>
+        <p key={i} style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", color:"rgba(255,255,255,0.65)", lineHeight:1.9, marginBottom:"20px" }}>{para}</p>
       ))}
       <div style={{ marginTop:"36px", background:"rgba(0,232,122,0.06)", border:"1px solid rgba(0,232,122,0.2)", borderRadius:"12px", padding:"20px 24px" }}>
-        <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"14px", color:"#00e87a", marginBottom:"6px" }}>Pronto para investir na B3?</p>
+        <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"14px", color:"#00e87a", marginBottom:"6px" }}>Veja o mercado agora</p>
         <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"rgba(255,255,255,0.4)", marginBottom:"14px", lineHeight:1.6 }}>
-          Abra sua conta gratuitamente em uma das principais corretoras do Brasil e comece a operar hoje.
+          Acompanhe as maiores altas e baixas da B3 em tempo real no Radar B3.
         </p>
-        <button style={{ background:"#00e87a", color:"#0a0c0f", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"12px", letterSpacing:"0.05em" }}>
-          ABRIR CONTA GRÁTIS →
+        <button onClick={onDashboard} style={{ background:"#00e87a", color:"#0a0c0f", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"12px", letterSpacing:"0.05em" }}>
+          VER RADAR AO VIVO →
         </button>
       </div>
     </div>
   );
 }
 
-// ─── PÁGINA BLOG ──────────────────────────────────────────────────────────────
-function BlogPage() {
+function BlogPage({ onDashboard }) {
   const [postAberto, setPostAberto] = useState(null);
-  if (postAberto) return <BlogPostView post={postAberto} onBack={() => setPostAberto(null)} />;
+  if (postAberto) return <BlogPostView post={postAberto} onBack={() => setPostAberto(null)} onDashboard={onDashboard} />;
   return (
     <div style={{ position:"relative", zIndex:2, maxWidth:"860px", margin:"0 auto" }}>
       <div style={{ marginBottom:"28px", textAlign:"center" }}>
         <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.25)", letterSpacing:"0.15em", textTransform:"uppercase", marginBottom:"8px" }}>Aprenda sobre o mercado</p>
-        <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(22px,4vw,32px)", color:"#fff", letterSpacing:"-0.02em" }}>
-          Blog <span style={{ color:"#00e87a" }}>Radar B3</span>
-        </h2>
+        <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(22px,4vw,32px)", color:"#fff", letterSpacing:"-0.02em" }}>Blog <span style={{ color:"#00e87a" }}>Radar B3</span></h2>
         <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>Conteúdo para traders e investidores da bolsa brasileira</p>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:"16px" }}>
@@ -334,97 +272,26 @@ function BlogPage() {
   );
 }
 
-// ─── STATUS DO PREGÃO ─────────────────────────────────────────────────────────
-function getPregaoStatus() {
-  const agora = new Date();
-  const diaSemana = agora.getDay(); // 0=Dom, 6=Sab
-  const hora = agora.getHours();
-  const min = agora.getMinutes();
-  const totalMin = hora * 60 + min;
+function DashboardPage({ timeStr, altas, baixas, loading, erro }) {
+  const [status, setStatus] = useState({ cor:"#555", pulsar:false, label:"...", bgBorder:"rgba(255,255,255,0.06)" });
 
-  const fimDeSemana = diaSemana === 0 || diaSemana === 6;
-
-  if (fimDeSemana) {
-    return {
-      cor: "#555",
-      pulsar: false,
-      label: "MERCADO FECHADO",
-      sublabel: "Pregão retorna na segunda-feira às 10h",
-      bgBorder: "rgba(255,255,255,0.06)",
-    };
-  }
-
-  if (totalMin >= 9 * 60 && totalMin < 10 * 60) {
-    return {
-      cor: "#f0a500",
-      pulsar: false,
-      label: "PRÉ-ABERTURA · B3",
-      sublabel: "Pregão abre às 10h00",
-      bgBorder: "rgba(240,165,0,0.2)",
-    };
-  }
-
-  if (totalMin >= 10 * 60 && totalMin < 17 * 60) {
-    return {
-      cor: "#00e87a",
-      pulsar: true,
-      label: "AO VIVO · B3",
-      sublabel: null,
-      bgBorder: "rgba(0,232,122,0.15)",
-    };
-  }
-
-  if (totalMin >= 17 * 60 && totalMin < 17 * 60 + 30) {
-    return {
-      cor: "#f0a500",
-      pulsar: false,
-      label: "LEILÃO DE FECHAMENTO",
-      sublabel: "Pregão encerra às 17h30",
-      bgBorder: "rgba(240,165,0,0.2)",
-    };
-  }
-
-  // Após 17h30
-  const proximoDia = diaSemana === 5 ? "segunda-feira" : "amanhã";
-  return {
-    cor: "#555",
-    pulsar: false,
-    label: "MERCADO FECHADO",
-    sublabel: `Pregão retorna ${proximoDia} às 10h`,
-    bgBorder: "rgba(255,255,255,0.06)",
-  };
-}
-
-// ─── PÁGINA DASHBOARD ─────────────────────────────────────────────────────────
-function DashboardPage({ animate, timeStr, altas, baixas, loading, erro }) {
-  const status = getPregaoStatus();
+  useEffect(() => {
+    setStatus(getPregaoStatus());
+    const iv = setInterval(() => setStatus(getPregaoStatus()), 30000);
+    return () => clearInterval(iv);
+  }, []);
 
   return (
     <>
       <div style={{ position:"relative", zIndex:2, textAlign:"center", marginBottom:"28px" }}>
-        <div style={{
-          display:"inline-flex", alignItems:"center", gap:"10px",
-          background:"rgba(255,255,255,0.03)",
-          border:`1px solid ${erro ? "rgba(255,68,68,0.3)" : status.bgBorder}`,
-          borderRadius:"6px", padding:"4px 14px", marginBottom:"10px",
-        }}>
-          <div style={{
-            width:"6px", height:"6px", borderRadius:"50%",
-            background: erro ? "#ff4444" : status.cor,
-            boxShadow: (erro || status.pulsar) ? `0 0 8px ${erro ? "#ff4444" : status.cor}` : "none",
-            animation: (erro || status.pulsar) ? "pulse 1.5s infinite" : "none",
-            transition: "background 0.5s",
-          }} />
-          <span style={{ fontSize:"10px", letterSpacing:"0.2em", color: erro ? "rgba(255,100,100,0.7)" : status.cor === "#555" ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.6)", textTransform:"uppercase", transition:"color 0.5s" }}>
-            {erro ? "ERRO AO CARREGAR" : loading ? "CARREGANDO..." : status.label}
+        <div style={{ display:"inline-flex", alignItems:"center", gap:"10px", background:"rgba(255,255,255,0.03)", border:`1px solid ${erro?"rgba(255,68,68,0.3)":status.bgBorder}`, borderRadius:"6px", padding:"4px 14px", marginBottom:"10px" }}>
+          <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:erro?"#ff4444":status.cor, boxShadow:(erro||status.pulsar)?`0 0 8px ${erro?"#ff4444":status.cor}`:"none", animation:(erro||status.pulsar)?"pulse 1.5s infinite":"none", transition:"background 0.5s" }} />
+          <span style={{ fontSize:"10px", letterSpacing:"0.2em", color:erro?"rgba(255,100,100,0.7)":status.cor==="#555"?"rgba(255,255,255,0.25)":"rgba(255,255,255,0.6)", textTransform:"uppercase" }}>
+            {erro?"ERRO AO CARREGAR":loading?"CARREGANDO...":status.label}
           </span>
         </div>
-
         <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", letterSpacing:"0.1em" }}>
-          {status.pulsar
-            ? `Maiores movimentações do dia ${timeStr ? `· Atualizado às ${timeStr}` : ""}`
-            : ""
-          }
+          {status.pulsar ? `Maiores movimentações do dia ${timeStr?`· Atualizado às ${timeStr}`:""}` : ""}
         </p>
       </div>
 
@@ -438,19 +305,13 @@ function DashboardPage({ animate, timeStr, altas, baixas, loading, erro }) {
         <div>
           <ColHeader tipo="alta" />
           <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
-            {loading
-              ? Array.from({length:10},(_,i) => <SkeletonCard key={i} rank={i+1} />)
-              : altas.map((s,i) => <StockCard key={s.ticker} stock={s} rank={i+1} tipo="alta" animate={animate} />)
-            }
+            {loading ? Array.from({length:10},(_,i) => <SkeletonCard key={i} rank={i+1} />) : altas.map((s,i) => <StockCard key={s.ticker} stock={s} rank={i+1} tipo="alta" animate={true} />)}
           </div>
         </div>
         <div>
           <ColHeader tipo="baixa" />
           <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
-            {loading
-              ? Array.from({length:10},(_,i) => <SkeletonCard key={i} rank={i+1} />)
-              : baixas.map((s,i) => <StockCard key={s.ticker} stock={s} rank={i+1} tipo="baixa" animate={animate} />)
-            }
+            {loading ? Array.from({length:10},(_,i) => <SkeletonCard key={i} rank={i+1} />) : baixas.map((s,i) => <StockCard key={s.ticker} stock={s} rank={i+1} tipo="baixa" animate={true} />)}
           </div>
         </div>
       </div>
@@ -462,10 +323,8 @@ function DashboardPage({ animate, timeStr, altas, baixas, loading, erro }) {
   );
 }
 
-// ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState("home");
-  const [animate, setAnimate] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [altas, setAltas] = useState([]);
   const [baixas, setBaixas] = useState([]);
@@ -476,74 +335,68 @@ export default function App() {
     ? lastUpdate.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" })
     : "";
 
-  // Busca dados reais da Brapi
   async function fetchDados() {
     try {
       setErro(null);
 
-      // Tenta ranking ao vivo primeiro
-      const urlLista = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=desc&limit=100&type=stock`;
-      const resLista = await fetch(urlLista);
-      const jsonLista = await resLista.json();
-      const stocks = jsonLista.stocks || [];
+      const urlAltas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=desc&limit=20&type=stock`;
+      const urlBaixas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=asc&limit=20&type=stock`;
 
-      const acoesValidas = stocks.filter(s =>
+      const [resAltas, resBaixas] = await Promise.all([
+        fetch(urlAltas).then(r => r.json()),
+        fetch(urlBaixas).then(r => r.json()),
+      ]);
+
+      const filtrar = (stocks) => (stocks || []).filter(s =>
         s.stock && s.close > 0 &&
         s.change !== null && s.change !== undefined &&
         /^[A-Z]{4}\d{1,2}$/.test(s.stock)
       );
 
-      if (acoesValidas.length >= 10) {
-        // Pregão aberto — usa ranking ao vivo
-        const mapear = (s) => ({
-          ticker: s.stock, preco: s.close,
-          variacao: s.change, volume: s.volume * s.close,
-          setor: s.sector || null, marketCap: s.market_cap || null,
-        });
-        setAltas(acoesValidas.filter(s => s.change > 0).slice(0, 10).map(mapear));
-        setBaixas([...acoesValidas].filter(s => s.change < 0).reverse().slice(0, 10).map(mapear));
+      const altasValidas = filtrar(resAltas.stocks);
+      const baixasValidas = filtrar(resBaixas.stocks);
 
-      } else {
-        // Mercado fechado — busca últimos fechamentos em 3 lotes de 10
+      const mapear = (s) => ({
+        ticker: s.stock, preco: s.close,
+        variacao: s.change, volume: s.volume * s.close,
+        setor: s.sector || null, marketCap: s.market_cap || null,
+      });
+
+      if (altasValidas.length > 0) {
+        setAltas(altasValidas.filter(s => s.change >= 0).slice(0, 10).map(mapear));
+      }
+      if (baixasValidas.length > 0) {
+        setBaixas(baixasValidas.filter(s => s.change < 0).slice(0, 10).map(mapear));
+      }
+
+      if (altasValidas.length === 0 && baixasValidas.length === 0) {
         const lotes = [
           "PETR4,VALE3,ITUB4,BBDC4,ABEV3,WEGE3,RENT3,BBAS3,SUZB3,GGBR4",
           "PRIO3,RDOR3,RADL3,EQTL3,TOTS3,EMBR3,JBSS3,CSAN3,SBSP3,CPFE3",
           "ELET3,CMIG4,VIVT3,TIMS3,CYRE3,MRVE3,LREN3,HAPV3,BPAC11,BEEF3",
         ];
-
         const resultados = await Promise.all(
           lotes.map(l =>
             fetch(`https://brapi.dev/api/quote/${l}?token=${BRAPI_TOKEN}`)
-              .then(r => r.json())
-              .then(d => d.results || [])
-              .catch(() => [])
+              .then(r => r.json()).then(d => d.results || []).catch(() => [])
           )
         );
-
         const validas = resultados.flat().filter(s =>
-          s && s.regularMarketPrice > 0 &&
-          s.regularMarketChangePercent !== null
+          s && s.regularMarketPrice > 0 && s.regularMarketChangePercent !== null
         );
-
-        const mapear = (s) => ({
+        const mapearFallback = (s) => ({
           ticker: s.symbol, preco: s.regularMarketPrice,
           variacao: s.regularMarketChangePercent,
           volume: (s.regularMarketVolume || 0) * s.regularMarketPrice,
           setor: s.sector || null, marketCap: s.marketCap || null,
         });
-
-        const ordenadas = [...validas].sort((a, b) =>
-          b.regularMarketChangePercent - a.regularMarketChangePercent
-        );
-
-        setAltas(ordenadas.slice(0, 10).map(mapear));
-        setBaixas([...ordenadas].reverse().slice(0, 10).map(mapear));
+        const ordenadas = [...validas].sort((a, b) => b.regularMarketChangePercent - a.regularMarketChangePercent);
+        setAltas(ordenadas.slice(0, 10).map(mapearFallback));
+        setBaixas([...ordenadas].reverse().slice(0, 10).map(mapearFallback));
       }
 
       setLastUpdate(new Date());
       setLoading(false);
-      setAnimate(true);
-
     } catch (e) {
       setErro("Não foi possível carregar os dados. Tentando novamente...");
       setLoading(false);
@@ -553,7 +406,6 @@ export default function App() {
 
   useEffect(() => {
     fetchDados();
-    // Atualiza a cada 60 segundos
     const interval = setInterval(fetchDados, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -578,17 +430,8 @@ export default function App() {
 
       <Navbar page={page} setPage={setPage} />
 
-      {page === "home" && (
-        <DashboardPage
-          animate={animate}
-          timeStr={timeStr}
-          altas={altas}
-          baixas={baixas}
-          loading={loading}
-          erro={erro}
-        />
-      )}
-      {page === "blog" && <BlogPage />}
+      {page === "home" && <DashboardPage timeStr={timeStr} altas={altas} baixas={baixas} loading={loading} erro={erro} />}
+      {page === "blog" && <BlogPage onDashboard={() => setPage("home")} />}
 
       <div style={{ position:"relative", zIndex:2, textAlign:"center", marginTop:"40px", fontSize:"10px", color:"rgba(255,255,255,0.15)", letterSpacing:"0.08em" }}>
         RADAR B3 · Dados com fins informativos · Não constitui recomendação de investimento
