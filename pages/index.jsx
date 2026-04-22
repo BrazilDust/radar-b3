@@ -48,6 +48,7 @@ function formatPreco(p) {
 }
 
 // ─── SPARKLINE ────────────────────────────────────────────────────────────────
+// Gera dados simulados como fallback quando não há dados reais
 function generateSparkline(finalVariacao, points = 12) {
   const seed = Math.abs(finalVariacao * 137.5);
   const pseudo = (n) => ((Math.sin(seed + n * 9.7) + Math.cos(seed * 0.3 + n * 3.1)) / 2);
@@ -62,24 +63,35 @@ function generateSparkline(finalVariacao, points = 12) {
   return data;
 }
 
-function Sparkline({ variacao, isAlta, width = 52, height = 28 }) {
-  const data = generateSparkline(variacao);
+function Sparkline({ variacao, isAlta, pontosReais, width = 52, height = 28 }) {
+  // Usa dados reais se disponíveis, senão simula
+  let data;
+  if (pontosReais && pontosReais.length >= 3) {
+    // Converte preços absolutos para variação percentual relativa ao primeiro preço
+    const base = pontosReais[0];
+    data = pontosReais.map(p => ((p - base) / base) * 100);
+  } else {
+    data = generateSparkline(variacao);
+  }
+
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
   const pad = 2;
   const w = width - pad * 2;
   const h = height - pad * 2;
-  const points = data.map((v, i) => {
+  const pts = data.map((v, i) => {
     const x = pad + (i / (data.length - 1)) * w;
     const y = pad + h - ((v - min) / range) * h;
     return `${x},${y}`;
   }).join(" ");
   const lastX = pad + w;
   const lastY = pad + h - ((data[data.length - 1] - min) / range) * h;
-  const areaPoints = `${pad},${pad + h} ${points} ${lastX},${pad + h}`;
+  const areaPoints = `${pad},${pad + h} ${pts} ${lastX},${pad + h}`;
   const color = isAlta ? "#00e87a" : "#ff4444";
   const gradId = `g${isAlta ? 1 : 0}${Math.round(Math.abs(variacao) * 10)}`;
+  const isReal = pontosReais && pontosReais.length >= 3;
+
   return (
     <svg width={width} height={height} style={{ display: "block", overflow: "visible" }}>
       <defs>
@@ -89,8 +101,10 @@ function Sparkline({ variacao, isAlta, width = 52, height = 28 }) {
         </linearGradient>
       </defs>
       <polygon points={areaPoints} fill={`url(#${gradId})`} />
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={lastX} cy={lastY} r="2.5" fill={color} opacity="0.9" />
+      {/* Indicador: ponto azul = real, cinza = simulado */}
+      <circle cx={pad + 3} cy={pad + 3} r="2" fill={isReal ? "#4af" : "rgba(255,255,255,0.2)"} opacity="0.8" />
     </svg>
   );
 }
@@ -136,8 +150,16 @@ function StockCard({ stock, rank, tipo, animate }) {
         </div>
       </div>
       <div style={{ flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:"2px" }}>
-        <Sparkline variacao={stock.variacao} isAlta={isAlta} width={54} height={30} />
-        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"8px", color:"rgba(255,255,255,0.2)", letterSpacing:"0.05em" }}>9h→agora</span>
+        <Sparkline
+          variacao={stock.variacao}
+          isAlta={isAlta}
+          pontosReais={stock.historico || null}
+          width={54}
+          height={30}
+        />
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"8px", color:"rgba(255,255,255,0.2)", letterSpacing:"0.05em" }}>
+          {stock.historico ? "intraday" : "estimado"}
+        </span>
       </div>
       <div style={{ fontSize:"13px", flexShrink:0, opacity:0.5 }}>{isAlta ? "▲" : "▼"}</div>
     </div>
@@ -376,6 +398,21 @@ export default function App() {
     ? lastUpdate.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" })
     : "";
 
+  // Busca histórico intraday de uma ação (1 requisição por ação)
+  async function fetchHistorico(ticker) {
+    try {
+      const url = `https://brapi.dev/api/quote/${ticker}?range=1d&interval=30m&token=${BRAPI_TOKEN}`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const json = await res.json();
+      const prices = json?.results?.[0]?.historicalDataPrice;
+      if (!prices || prices.length < 3) return null;
+      return prices.map(p => p.close).filter(Boolean);
+    } catch {
+      return null;
+    }
+  }
+
   // Busca dados reais da Brapi
   async function fetchDados() {
     try {
@@ -387,7 +424,7 @@ export default function App() {
 
       const stocks = json.stocks || [];
 
-      // Filtra apenas ações brasileiras reais (tickers com 5 ou 6 caracteres terminando em número)
+      // Filtra apenas ações brasileiras reais
       const acoesValidas = stocks.filter(s =>
         s.stock &&
         s.close > 0 &&
@@ -396,26 +433,17 @@ export default function App() {
         /^[A-Z]{4}\d{1,2}$/.test(s.stock)
       );
 
-      // Mapeia para o formato do card
       const mapear = (s) => ({
         ticker: s.stock,
         preco: s.close,
         variacao: s.change,
-        volume: s.volume * s.close, // converte quantidade → volume financeiro
+        volume: s.volume * s.close,
+        historico: null, // preenchido abaixo para as top 5
       });
 
-      // Top 10 altas (variação positiva)
-      const topAltas = acoesValidas
-        .filter(s => s.change > 0)
-        .slice(0, 10)
-        .map(mapear);
-
-      // Top 10 baixas (variação negativa, ordena do mais negativo)
-      const topBaixas = [...acoesValidas]
-        .filter(s => s.change < 0)
-        .reverse()
-        .slice(0, 10)
-        .map(mapear);
+      // Top 10 altas e baixas
+      const topAltas = acoesValidas.filter(s => s.change > 0).slice(0, 10).map(mapear);
+      const topBaixas = [...acoesValidas].filter(s => s.change < 0).reverse().slice(0, 10).map(mapear);
 
       setAltas(topAltas);
       setBaixas(topBaixas);
@@ -423,8 +451,32 @@ export default function App() {
       setLoading(false);
       setTimeout(() => setAnimate(true), 100);
 
+      // Busca histórico intraday para top 5 de cada lado (10 req no total)
+      // Feito em paralelo para ser mais rápido
+      const tickersComHistorico = [
+        ...topAltas.slice(0, 5).map(s => ({ ticker: s.ticker, tipo: "alta" })),
+        ...topBaixas.slice(0, 5).map(s => ({ ticker: s.ticker, tipo: "baixa" })),
+      ];
+
+      const historicos = await Promise.all(
+        tickersComHistorico.map(({ ticker }) => fetchHistorico(ticker))
+      );
+
+      // Atualiza as ações com os históricos recebidos
+      setAltas(prev => prev.map((s, i) => {
+        const idx = tickersComHistorico.findIndex(t => t.ticker === s.ticker && t.tipo === "alta");
+        if (idx !== -1 && historicos[idx]) return { ...s, historico: historicos[idx] };
+        return s;
+      }));
+
+      setBaixas(prev => prev.map((s) => {
+        const idx = tickersComHistorico.findIndex(t => t.ticker === s.ticker && t.tipo === "baixa");
+        if (idx !== -1 && historicos[idx]) return { ...s, historico: historicos[idx] };
+        return s;
+      }));
+
     } catch (e) {
-      setErro("Não foi possível carregar os dados. Tentando novamente em 60s...");
+      setErro("Não foi possível carregar os dados. Tentando novamente em 30 min...");
       setLoading(false);
       console.error(e);
     }
@@ -432,8 +484,8 @@ export default function App() {
 
   useEffect(() => {
     fetchDados();
-    // Atualiza a cada 60 segundos
-    const interval = setInterval(fetchDados, 60000);
+    // Atualiza a cada 30 minutos (limite do plano gratuito da Brapi)
+    const interval = setInterval(fetchDados, 30 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
