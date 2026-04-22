@@ -47,76 +47,58 @@ function formatPreco(p) {
   return p.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-// ─── SPARKLINE ────────────────────────────────────────────────────────────────
-// Gera dados simulados como fallback quando não há dados reais
-function generateSparkline(finalVariacao, points = 12) {
-  const seed = Math.abs(finalVariacao * 137.5);
-  const pseudo = (n) => ((Math.sin(seed + n * 9.7) + Math.cos(seed * 0.3 + n * 3.1)) / 2);
-  const data = [];
-  for (let i = 0; i < points; i++) {
-    const progress = i / (points - 1);
-    const trend = finalVariacao * progress;
-    const noise = pseudo(i) * Math.abs(finalVariacao) * 0.35;
-    data.push(trend + noise);
-  }
-  data[points - 1] = finalVariacao;
-  return data;
+// ─── HELPERS DE SETOR E PORTE ─────────────────────────────────────────────────
+function formatSetor(setor) {
+  if (!setor) return null;
+  const map = {
+    "Consumer Non-Durables": "Consumo",
+    "Consumer Durables": "Consumo",
+    "Consumer Services": "Serviços",
+    "Health Technology": "Saúde",
+    "Health Services": "Saúde",
+    "Finance": "Finanças",
+    "Technology Services": "Tecnologia",
+    "Electronic Technology": "Tecnologia",
+    "Energy Minerals": "Energia",
+    "Industrial Services": "Indústria",
+    "Producer Manufacturing": "Indústria",
+    "Process Industries": "Indústria",
+    "Transportation": "Transporte",
+    "Utilities": "Utilidades",
+    "Commercial Services": "Serviços",
+    "Retail Trade": "Varejo",
+    "Distribution Services": "Distribuição",
+    "Miscellaneous": null,
+    "Communications": "Telecom",
+    "Telecommunication Services": "Telecom",
+    "Financial Conglomerates": "Finanças",
+    "Investment Trusts/Mutual Funds": "Fundos",
+    "Non-Energy Minerals": "Mineração",
+    "Real Estate": "Imóveis",
+  };
+  return map[setor] || setor.split(" ")[0];
 }
 
-function Sparkline({ variacao, isAlta, pontosReais, width = 52, height = 28 }) {
-  // Usa dados reais se disponíveis, senão simula
-  let data;
-  if (pontosReais && pontosReais.length >= 3) {
-    // Converte preços absolutos para variação percentual relativa ao primeiro preço
-    const base = pontosReais[0];
-    data = pontosReais.map(p => ((p - base) / base) * 100);
-  } else {
-    data = generateSparkline(variacao);
-  }
-
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const pad = 2;
-  const w = width - pad * 2;
-  const h = height - pad * 2;
-  const pts = data.map((v, i) => {
-    const x = pad + (i / (data.length - 1)) * w;
-    const y = pad + h - ((v - min) / range) * h;
-    return `${x},${y}`;
-  }).join(" ");
-  const lastX = pad + w;
-  const lastY = pad + h - ((data[data.length - 1] - min) / range) * h;
-  const areaPoints = `${pad},${pad + h} ${pts} ${lastX},${pad + h}`;
-  const color = isAlta ? "#00e87a" : "#ff4444";
-  const gradId = `g${isAlta ? 1 : 0}${Math.round(Math.abs(variacao) * 10)}`;
-  const isReal = pontosReais && pontosReais.length >= 3;
-
-  return (
-    <svg width={width} height={height} style={{ display: "block", overflow: "visible" }}>
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon points={areaPoints} fill={`url(#${gradId})`} />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={lastX} cy={lastY} r="2.5" fill={color} opacity="0.9" />
-      {/* Indicador: ponto azul = real, cinza = simulado */}
-      <circle cx={pad + 3} cy={pad + 3} r="2" fill={isReal ? "#4af" : "rgba(255,255,255,0.2)"} opacity="0.8" />
-    </svg>
-  );
+function formatPorte(marketCap) {
+  if (!marketCap) return null;
+  if (marketCap >= 10e9)  return "Large Cap";
+  if (marketCap >= 2e9)   return "Mid Cap";
+  return "Small Cap";
 }
 
 // ─── STOCK CARD ───────────────────────────────────────────────────────────────
 function StockCard({ stock, rank, tipo, animate }) {
   const isAlta = tipo === "alta";
   const intensity = 1 - (rank - 1) / 10;
-  const bgAlta   = `rgba(0,${Math.round(180+intensity*60)},${Math.round(80+intensity*40)},${0.08+intensity*0.10})`;
-  const bgBaixa  = `rgba(${Math.round(200+intensity*55)},${Math.round(20+intensity*10)},${Math.round(30+intensity*10)},${0.08+intensity*0.10})`;
-  const bdAlta   = `rgba(0,${Math.round(210+intensity*45)},100,${0.2+intensity*0.4})`;
-  const bdBaixa  = `rgba(${Math.round(220+intensity*35)},40,50,${0.2+intensity*0.4})`;
+  const bgAlta  = `rgba(0,${Math.round(180+intensity*60)},${Math.round(80+intensity*40)},${0.08+intensity*0.10})`;
+  const bgBaixa = `rgba(${Math.round(200+intensity*55)},${Math.round(20+intensity*10)},${Math.round(30+intensity*10)},${0.08+intensity*0.10})`;
+  const bdAlta  = `rgba(0,${Math.round(210+intensity*45)},100,${0.2+intensity*0.4})`;
+  const bdBaixa = `rgba(${Math.round(220+intensity*35)},40,50,${0.2+intensity*0.4})`;
+
+  const cor = isAlta ? "#00e87a" : "#ff5050";
+  const corNum = isAlta ? "#00ff8c" : "#ff4444";
+  const setor = formatSetor(stock.setor);
+  const porte = formatPorte(stock.marketCap);
 
   return (
     <div style={{
@@ -127,41 +109,65 @@ function StockCard({ stock, rank, tipo, animate }) {
       opacity: animate ? 1 : 0,
       transform: animate ? "translateX(0)" : `translateX(${isAlta ? "-30px" : "30px"})`,
       transition: `all 0.5s cubic-bezier(0.34,1.56,0.64,1) ${rank * 0.07}s`,
-      cursor: "default", position: "relative", overflow: "hidden",
+      cursor: "default",
     }}>
+      {/* Rank */}
       <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color: isAlta?"rgba(0,230,120,0.45)":"rgba(255,80,80,0.45)", width:"18px", minWidth:"18px", textAlign:"center", flexShrink:0, fontWeight:600 }}>
         {rank}
       </div>
+
+      {/* Ticker + Variação */}
       <div style={{ display:"flex", flexDirection:"column", gap:"3px", width:"90px", minWidth:"90px", flexShrink:0 }}>
-        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"15px", fontWeight:800, color: isAlta?"#00e87a":"#ff5050", letterSpacing:"0.04em", whiteSpace:"nowrap", lineHeight:1 }}>
+        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"15px", fontWeight:800, color: cor, letterSpacing:"0.04em", whiteSpace:"nowrap", lineHeight:1 }}>
           {stock.ticker}
         </div>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", fontWeight:700, color: isAlta?"#00ff8c":"#ff4444", lineHeight:1 }}>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", fontWeight:700, color: corNum, lineHeight:1 }}>
           {isAlta ? "+" : ""}{stock.variacao.toFixed(2)}%
         </div>
       </div>
+
+      {/* Divider */}
       <div style={{ width:"1px", height:"34px", background:"rgba(255,255,255,0.08)", flexShrink:0 }} />
+
+      {/* Preço + Volume */}
       <div style={{ display:"flex", flexDirection:"column", gap:"3px", flex:1 }}>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", color:"rgba(255,255,255,0.85)", fontWeight:500, whiteSpace:"nowrap" }}>
           {formatPreco(stock.preco)}
         </div>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.35)", letterSpacing:"0.02em", whiteSpace:"nowrap" }}>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.35)", whiteSpace:"nowrap" }}>
           Vol {formatVolume(stock.volume)}
         </div>
       </div>
-      <div style={{ flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:"2px" }}>
-        <Sparkline
-          variacao={stock.variacao}
-          isAlta={isAlta}
-          pontosReais={stock.historico || null}
-          width={54}
-          height={30}
-        />
-        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"8px", color:"rgba(255,255,255,0.2)", letterSpacing:"0.05em" }}>
-          {stock.historico ? "intraday" : "estimado"}
-        </span>
+
+      {/* Setor + Porte */}
+      <div style={{ display:"flex", flexDirection:"column", gap:"5px", alignItems:"flex-end", flexShrink:0 }}>
+        {setor && (
+          <div style={{
+            background: `${cor}15`,
+            border: `1px solid ${cor}35`,
+            borderRadius:"4px", padding:"2px 7px",
+            fontFamily:"'DM Mono',monospace", fontSize:"9px",
+            color: `${cor}CC`, letterSpacing:"0.07em",
+            whiteSpace:"nowrap", textTransform:"uppercase",
+          }}>
+            {setor}
+          </div>
+        )}
+        {porte && (
+          <div style={{
+            fontFamily:"'DM Mono',monospace", fontSize:"9px",
+            color:"rgba(255,255,255,0.25)", letterSpacing:"0.05em",
+          }}>
+            {porte}
+          </div>
+        )}
+        {!setor && !porte && (
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"9px", color:"rgba(255,255,255,0.15)" }}>—</div>
+        )}
       </div>
-      <div style={{ fontSize:"13px", flexShrink:0, opacity:0.5 }}>{isAlta ? "▲" : "▼"}</div>
+
+      {/* Seta */}
+      <div style={{ fontSize:"13px", flexShrink:0, opacity:0.4 }}>{isAlta ? "▲" : "▼"}</div>
     </div>
   );
 }
@@ -476,21 +482,6 @@ export default function App() {
     ? lastUpdate.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" })
     : "";
 
-  // Busca histórico intraday de uma ação (1 requisição por ação)
-  async function fetchHistorico(ticker) {
-    try {
-      const url = `https://brapi.dev/api/quote/${ticker}?range=1d&interval=30m&token=${BRAPI_TOKEN}`;
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      const json = await res.json();
-      const prices = json?.results?.[0]?.historicalDataPrice;
-      if (!prices || prices.length < 3) return null;
-      return prices.map(p => p.close).filter(Boolean);
-    } catch {
-      return null;
-    }
-  }
-
   // Busca dados reais da Brapi
   async function fetchDados() {
     try {
@@ -516,10 +507,10 @@ export default function App() {
         preco: s.close,
         variacao: s.change,
         volume: s.volume * s.close,
-        historico: null, // preenchido abaixo para as top 5
+        setor: s.sector || null,
+        marketCap: s.market_cap || null,
       });
 
-      // Top 10 altas e baixas
       const topAltas = acoesValidas.filter(s => s.change > 0).slice(0, 10).map(mapear);
       const topBaixas = [...acoesValidas].filter(s => s.change < 0).reverse().slice(0, 10).map(mapear);
 
@@ -529,32 +520,8 @@ export default function App() {
       setLoading(false);
       setTimeout(() => setAnimate(true), 100);
 
-      // Busca histórico intraday para top 5 de cada lado (10 req no total)
-      // Feito em paralelo para ser mais rápido
-      const tickersComHistorico = [
-        ...topAltas.slice(0, 5).map(s => ({ ticker: s.ticker, tipo: "alta" })),
-        ...topBaixas.slice(0, 5).map(s => ({ ticker: s.ticker, tipo: "baixa" })),
-      ];
-
-      const historicos = await Promise.all(
-        tickersComHistorico.map(({ ticker }) => fetchHistorico(ticker))
-      );
-
-      // Atualiza as ações com os históricos recebidos
-      setAltas(prev => prev.map((s, i) => {
-        const idx = tickersComHistorico.findIndex(t => t.ticker === s.ticker && t.tipo === "alta");
-        if (idx !== -1 && historicos[idx]) return { ...s, historico: historicos[idx] };
-        return s;
-      }));
-
-      setBaixas(prev => prev.map((s) => {
-        const idx = tickersComHistorico.findIndex(t => t.ticker === s.ticker && t.tipo === "baixa");
-        if (idx !== -1 && historicos[idx]) return { ...s, historico: historicos[idx] };
-        return s;
-      }));
-
     } catch (e) {
-      setErro("Não foi possível carregar os dados. Tentando novamente em 30 min...");
+      setErro("Não foi possível carregar os dados. Tentando novamente...");
       setLoading(false);
       console.error(e);
     }
@@ -562,8 +529,8 @@ export default function App() {
 
   useEffect(() => {
     fetchDados();
-    // Atualiza a cada 30 minutos (limite do plano gratuito da Brapi)
-    const interval = setInterval(fetchDados, 30 * 60 * 1000);
+    // Atualiza a cada 60 segundos
+    const interval = setInterval(fetchDados, 60000);
     return () => clearInterval(interval);
   }, []);
 
