@@ -339,8 +339,8 @@ export default function App() {
     try {
       setErro(null);
 
-      const urlAltas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=desc&limit=20&type=stock`;
-      const urlBaixas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=asc&limit=20&type=stock`;
+      const urlAltas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=desc&limit=50&type=stock`;
+      const urlBaixas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=asc&limit=50&type=stock`;
 
       const [resAltas, resBaixas] = await Promise.all([
         fetch(urlAltas).then(r => r.json()),
