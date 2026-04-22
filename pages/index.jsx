@@ -472,10 +472,33 @@ function BlogPage({ onDashboard }) {
 
 function DashboardPage({ timeStr, altas, baixas, loading, erro }) {
   const [status, setStatus] = useState({ cor:"#555", pulsar:false, label:"...", bgBorder:"rgba(255,255,255,0.06)" });
+  const [ibov, setIbov] = useState(null);
+  const [dolar, setDolar] = useState(null);
 
   useEffect(() => {
     setStatus(getPregaoStatus());
     const iv = setInterval(() => setStatus(getPregaoStatus()), 30000);
+    return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    async function fetchIndicadores() {
+      try {
+        // Ibovespa
+        const resIbov = await fetch(`https://brapi.dev/api/quote/%5EBVSP?token=${BRAPI_TOKEN}`);
+        const jsonIbov = await resIbov.json();
+        const bvsp = jsonIbov.results?.[0];
+        if (bvsp) setIbov({ valor: bvsp.regularMarketPrice, variacao: bvsp.regularMarketChangePercent });
+
+        // Dólar via endpoint de câmbio
+        const resDolar = await fetch(`https://brapi.dev/api/v2/currency?currency=USD-BRL&token=${BRAPI_TOKEN}`);
+        const jsonDolar = await resDolar.json();
+        const usd = jsonDolar.currency?.[0];
+        if (usd) setDolar({ valor: parseFloat(usd.bidPrice), variacao: parseFloat(usd.percentageChange) });
+      } catch {}
+    }
+    fetchIndicadores();
+    const iv = setInterval(fetchIndicadores, 60000);
     return () => clearInterval(iv);
   }, []);
 
@@ -491,6 +514,39 @@ function DashboardPage({ timeStr, altas, baixas, loading, erro }) {
         <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", letterSpacing:"0.1em" }}>
           {status.pulsar ? `Maiores movimentações do dia ${timeStr?`· Atualizado às ${timeStr}`:""}` : ""}
         </p>
+
+        {/* Ibovespa + Dólar */}
+        {(ibov || dolar) && (
+          <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"rgba(255,255,255,0.4)", marginTop:"6px", letterSpacing:"0.04em" }}>
+            {ibov && (
+              <span>
+                IBOV{" "}
+                <span style={{ color:"rgba(255,255,255,0.75)" }}>
+                  {ibov.valor.toLocaleString("pt-BR", { minimumFractionDigits:0, maximumFractionDigits:0 })}
+                </span>
+                {" "}
+                <span style={{ color: ibov.variacao >= 0 ? "#00e87a" : "#ff5050" }}>
+                  {ibov.variacao >= 0 ? "+" : ""}{ibov.variacao.toFixed(2)}%
+                </span>
+              </span>
+            )}
+            {ibov && dolar && (
+              <span style={{ color:"rgba(255,255,255,0.2)", margin:"0 10px" }}>·</span>
+            )}
+            {dolar && (
+              <span>
+                USD/BRL{" "}
+                <span style={{ color:"rgba(255,255,255,0.75)" }}>
+                  R$ {dolar.valor.toLocaleString("pt-BR", { minimumFractionDigits:2, maximumFractionDigits:2 })}
+                </span>
+                {" "}
+                <span style={{ color: dolar.variacao >= 0 ? "#ff5050" : "#00e87a" }}>
+                  {dolar.variacao >= 0 ? "+" : ""}{dolar.variacao.toFixed(2)}%
+                </span>
+              </span>
+            )}
+          </p>
+        )}
       </div>
 
       {erro && (
