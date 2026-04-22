@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 
 // ─── SUBSTITUA PELO SEU TOKEN DA BRAPI ───────────────────────────────────────
 const BRAPI_TOKEN = process.env.NEXT_PUBLIC_BRAPI_TOKEN;
+
 // ─── POSTS DO BLOG ────────────────────────────────────────────────────────────
 const blogPosts = [
   {
@@ -479,36 +480,66 @@ export default function App() {
   async function fetchDados() {
     try {
       setErro(null);
-      const url = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=desc&type=stock`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
-      const json = await res.json();
 
-      const stocks = json.stocks || [];
+      // Tenta ranking ao vivo primeiro
+      const urlLista = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=desc&limit=100&type=stock`;
+      const resLista = await fetch(urlLista);
+      const jsonLista = await resLista.json();
+      const stocks = jsonLista.stocks || [];
 
-      // Filtra apenas ações brasileiras reais
       const acoesValidas = stocks.filter(s =>
-        s.stock &&
-        s.close > 0 &&
-        s.change !== null &&
-        s.change !== undefined &&
+        s.stock && s.close > 0 &&
+        s.change !== null && s.change !== undefined &&
         /^[A-Z]{4}\d{1,2}$/.test(s.stock)
       );
 
-      const mapear = (s) => ({
-        ticker: s.stock,
-        preco: s.close,
-        variacao: s.change,
-        volume: s.volume * s.close,
-        setor: s.sector || null,
-        marketCap: s.market_cap || null,
-      });
+      if (acoesValidas.length >= 10) {
+        // Pregão aberto — usa ranking ao vivo
+        const mapear = (s) => ({
+          ticker: s.stock, preco: s.close,
+          variacao: s.change, volume: s.volume * s.close,
+          setor: s.sector || null, marketCap: s.market_cap || null,
+        });
+        setAltas(acoesValidas.filter(s => s.change > 0).slice(0, 10).map(mapear));
+        setBaixas([...acoesValidas].filter(s => s.change < 0).reverse().slice(0, 10).map(mapear));
 
-      const topAltas = acoesValidas.filter(s => s.change > 0).slice(0, 10).map(mapear);
-      const topBaixas = [...acoesValidas].filter(s => s.change < 0).reverse().slice(0, 10).map(mapear);
+      } else {
+        // Mercado fechado — busca últimos fechamentos em 3 lotes de 10
+        const lotes = [
+          "PETR4,VALE3,ITUB4,BBDC4,ABEV3,WEGE3,RENT3,BBAS3,SUZB3,GGBR4",
+          "PRIO3,RDOR3,RADL3,EQTL3,TOTS3,EMBR3,JBSS3,CSAN3,SBSP3,CPFE3",
+          "ELET3,CMIG4,VIVT3,TIMS3,CYRE3,MRVE3,LREN3,HAPV3,BPAC11,BEEF3",
+        ];
 
-      setAltas(topAltas);
-      setBaixas(topBaixas);
+        const resultados = await Promise.all(
+          lotes.map(l =>
+            fetch(`https://brapi.dev/api/quote/${l}?token=${BRAPI_TOKEN}`)
+              .then(r => r.json())
+              .then(d => d.results || [])
+              .catch(() => [])
+          )
+        );
+
+        const validas = resultados.flat().filter(s =>
+          s && s.regularMarketPrice > 0 &&
+          s.regularMarketChangePercent !== null
+        );
+
+        const mapear = (s) => ({
+          ticker: s.symbol, preco: s.regularMarketPrice,
+          variacao: s.regularMarketChangePercent,
+          volume: (s.regularMarketVolume || 0) * s.regularMarketPrice,
+          setor: s.sector || null, marketCap: s.marketCap || null,
+        });
+
+        const ordenadas = [...validas].sort((a, b) =>
+          b.regularMarketChangePercent - a.regularMarketChangePercent
+        );
+
+        setAltas(ordenadas.slice(0, 10).map(mapear));
+        setBaixas([...ordenadas].reverse().slice(0, 10).map(mapear));
+      }
+
       setLastUpdate(new Date());
       setLoading(false);
       setAnimate(true);
