@@ -199,13 +199,207 @@ function Navbar({ page, setPage }) {
         </span>
       </button>
       <div style={{ display:"flex", gap:"4px" }}>
-        {[{label:"Dashboard",key:"home"},{label:"Blog",key:"blog"}].map(({label,key}) => (
-          <button key={key} onClick={() => setPage(key)} style={{ background:page===key?"rgba(0,232,122,0.1)":"none", border:page===key?"1px solid rgba(0,232,122,0.25)":"1px solid transparent", borderRadius:"8px", padding:"6px 16px", cursor:"pointer", fontFamily:"'DM Mono',monospace", fontSize:"12px", fontWeight:500, color:page===key?"#00e87a":"rgba(255,255,255,0.4)", letterSpacing:"0.05em", transition:"all 0.2s" }}>
+        {[{label:"Dashboard",key:"home"},{label:"Blue Chips",key:"bluechips"},{label:"Blog",key:"blog"}].map(({label,key}) => (
+          <button key={key} onClick={() => setPage(key)} style={{
+            background: page===key ? (key==="bluechips" ? "rgba(30,144,255,0.15)" : "rgba(0,232,122,0.1)") : "none",
+            border: page===key ? (key==="bluechips" ? "1px solid rgba(30,144,255,0.4)" : "1px solid rgba(0,232,122,0.25)") : "1px solid transparent",
+            borderRadius:"8px", padding:"6px 16px", cursor:"pointer",
+            fontFamily:"'DM Mono',monospace", fontSize:"12px", fontWeight:500,
+            color: page===key ? (key==="bluechips" ? "#1e90ff" : "#00e87a") : "rgba(255,255,255,0.4)",
+            letterSpacing:"0.05em", transition:"all 0.2s",
+          }}>
             {label}
           </button>
         ))}
       </div>
     </nav>
+  );
+}
+
+// ─── BLUE CHIP CARD ───────────────────────────────────────────────────────────
+function BlueChipCard({ stock, rank }) {
+  const isAlta = stock.variacao >= 0;
+  const cor = isAlta ? "#00e87a" : "#ff5050";
+  const corNum = isAlta ? "#00ff8c" : "#ff4444";
+  const bgCard = isAlta
+    ? "rgba(0,180,80,0.06)"
+    : "rgba(200,30,30,0.06)";
+  const bdCard = isAlta
+    ? "rgba(0,200,100,0.18)"
+    : "rgba(220,50,50,0.18)";
+  const setor = formatSetor(stock.setor);
+  const porte = formatPorte(stock.marketCap);
+
+  return (
+    <div style={{
+      background: bgCard,
+      border: `1px solid ${bdCard}`,
+      borderRadius:"10px", padding:"12px 16px",
+      display:"flex", alignItems:"center", gap:"14px",
+      transition:"all 0.3s ease",
+      animation:`fadeUp 0.4s ease ${rank * 0.04}s both`,
+    }}>
+      {/* Rank */}
+      <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"12px", color:"rgba(255,255,255,0.3)", width:"22px", minWidth:"22px", textAlign:"center", flexShrink:0, fontWeight:600 }}>
+        {rank}
+      </div>
+
+      {/* Ticker + Variação */}
+      <div style={{ display:"flex", flexDirection:"column", gap:"3px", width:"90px", minWidth:"90px", flexShrink:0 }}>
+        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"15px", fontWeight:800, color:cor, letterSpacing:"0.04em", lineHeight:1 }}>
+          {stock.ticker}
+        </div>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", fontWeight:700, color:corNum, lineHeight:1 }}>
+          {isAlta?"+":""}{stock.variacao.toFixed(2)}%
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ width:"1px", height:"34px", background:"rgba(255,255,255,0.08)", flexShrink:0 }} />
+
+      {/* Preço + Volume */}
+      <div style={{ display:"flex", flexDirection:"column", gap:"3px", flex:1 }}>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", color:"rgba(255,255,255,0.85)", fontWeight:500 }}>
+          {formatPreco(stock.preco)}
+        </div>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.35)" }}>
+          Vol {formatVolume(stock.volume)}
+        </div>
+      </div>
+
+      {/* Setor + Porte */}
+      <div style={{ display:"flex", flexDirection:"column", gap:"5px", alignItems:"flex-end", flexShrink:0 }}>
+        {setor && (
+          <div style={{ background:`${cor}15`, border:`1px solid ${cor}35`, borderRadius:"4px", padding:"2px 7px", fontFamily:"'DM Mono',monospace", fontSize:"9px", color:`${cor}CC`, letterSpacing:"0.07em", whiteSpace:"nowrap", textTransform:"uppercase" }}>
+            {setor}
+          </div>
+        )}
+        {porte && (
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"9px", color:"rgba(255,255,255,0.25)" }}>
+            {porte}
+          </div>
+        )}
+      </div>
+
+      {/* Seta */}
+      <div style={{ fontSize:"13px", flexShrink:0, opacity:0.4 }}>{isAlta?"▲":"▼"}</div>
+    </div>
+  );
+}
+
+// ─── PÁGINA BLUE CHIPS ────────────────────────────────────────────────────────
+function BlueChipsPage() {
+  const [chips, setChips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(null);
+
+  const timeStr = lastUpdate
+    ? lastUpdate.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" })
+    : "";
+
+  async function fetchBlueChips() {
+    try {
+      setErro(null);
+
+      // Busca por volume — ordena pelo maior volume
+      const url = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=volume&sortOrder=desc&limit=50&type=stock`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const stocks = json.stocks || [];
+
+      const filtradas = stocks.filter(s =>
+        s.stock && s.close > 0 &&
+        s.change !== null && s.change !== undefined &&
+        s.volume > 0 &&
+        /^[A-Z]{4}\d{1,2}$/.test(s.stock)
+      );
+
+      if (filtradas.length > 0) {
+        // Pega as 15 com maior volume e ordena por variação %
+        const top15 = filtradas.slice(0, 15);
+        const ordenadas = [...top15].sort((a, b) => b.change - a.change);
+
+        setChips(ordenadas.map(s => ({
+          ticker: s.stock,
+          preco: s.close,
+          variacao: s.change,
+          volume: s.volume * s.close,
+          setor: s.sector || null,
+          marketCap: s.market_cap || null,
+        })));
+      } else {
+        // Fallback fora do pregão — lista fixa das principais blue chips
+        const tickers = "PETR4,VALE3,ITUB4,BBDC4,ABEV3,WEGE3,BBAS3,SUZB3,GGBR4,RDOR3,EMBR3,JBSS3,RENT3,BPAC11,SBSP3";
+        const resFallback = await fetch(`https://brapi.dev/api/quote/${tickers}?token=${BRAPI_TOKEN}`);
+        const jsonFallback = await resFallback.json();
+        const results = jsonFallback.results || [];
+
+        const validas = results.filter(s => s && s.regularMarketPrice > 0);
+        const ordenadas = [...validas].sort((a, b) => b.regularMarketChangePercent - a.regularMarketChangePercent);
+
+        setChips(ordenadas.map(s => ({
+          ticker: s.symbol,
+          preco: s.regularMarketPrice,
+          variacao: s.regularMarketChangePercent,
+          volume: (s.regularMarketVolume || 0) * s.regularMarketPrice,
+          setor: s.sector || null,
+          marketCap: s.marketCap || null,
+        })));
+      }
+
+      setLastUpdate(new Date());
+      setLoading(false);
+    } catch (e) {
+      setErro("Não foi possível carregar os dados.");
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchBlueChips();
+    const interval = setInterval(fetchBlueChips, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ position:"relative", zIndex:2, maxWidth:"600px", margin:"0 auto" }}>
+      {/* Header */}
+      <div style={{ textAlign:"center", marginBottom:"28px" }}>
+        <div style={{ display:"inline-flex", alignItems:"center", gap:"10px", background:"rgba(30,144,255,0.06)", border:"1px solid rgba(30,144,255,0.2)", borderRadius:"6px", padding:"4px 14px", marginBottom:"10px" }}>
+          <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#1e90ff", boxShadow:"0 0 8px #1e90ff", animation:"pulse 2s infinite" }} />
+          <span style={{ fontSize:"10px", letterSpacing:"0.2em", color:"rgba(30,144,255,0.8)", textTransform:"uppercase" }}>
+            BLUE CHIPS · B3
+          </span>
+        </div>
+        <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(20px,4vw,28px)", color:"#fff", letterSpacing:"-0.02em", marginBottom:"6px" }}>
+          Top 15 por <span style={{ color:"#1e90ff" }}>Volume</span>
+        </h2>
+        <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"rgba(255,255,255,0.3)" }}>
+          Selecionadas pelo maior volume financeiro · Classificadas por variação %
+          {timeStr ? ` · Atualizado às ${timeStr}` : ""}
+        </p>
+      </div>
+
+      {erro && (
+        <div style={{ background:"rgba(255,68,68,0.08)", border:"1px solid rgba(255,68,68,0.2)", borderRadius:"10px", padding:"16px", textAlign:"center", fontFamily:"'DM Mono',monospace", fontSize:"12px", color:"rgba(255,100,100,0.8)", marginBottom:"20px" }}>
+          {erro}
+        </div>
+      )}
+
+      {/* Cards */}
+      <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+        {loading
+          ? Array.from({length:15}, (_,i) => <SkeletonCard key={i} rank={i+1} />)
+          : chips.map((s, i) => <BlueChipCard key={s.ticker} stock={s} rank={i+1} />)
+        }
+      </div>
+
+      {/* Ad banner */}
+      <div style={{ maxWidth:"728px", margin:"32px auto 0", height:"90px", border:"1px dashed rgba(255,255,255,0.08)", borderRadius:"8px", display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,0.02)" }}>
+        <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.18)", letterSpacing:"0.15em", textTransform:"uppercase" }}>Espaço publicitário · 728×90</span>
+      </div>
+    </div>
   );
 }
 
@@ -339,8 +533,8 @@ export default function App() {
     try {
       setErro(null);
 
-      const urlAltas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=desc&limit=50&type=stock`;
-      const urlBaixas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=asc&limit=50&type=stock`;
+      const urlAltas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=desc&limit=20&type=stock`;
+      const urlBaixas = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=change&sortOrder=asc&limit=20&type=stock`;
 
       const [resAltas, resBaixas] = await Promise.all([
         fetch(urlAltas).then(r => r.json()),
@@ -363,7 +557,7 @@ export default function App() {
       });
 
       if (altasValidas.length > 0) {
-        setAltas(altasValidas.filter(s => s.change >= 0).slice(0, 10).map(mapear));
+        setAltas(altasValidas.filter(s => s.change > 0).slice(0, 10).map(mapear));
       }
       if (baixasValidas.length > 0) {
         setBaixas(baixasValidas.filter(s => s.change < 0).slice(0, 10).map(mapear));
@@ -431,6 +625,7 @@ export default function App() {
       <Navbar page={page} setPage={setPage} />
 
       {page === "home" && <DashboardPage timeStr={timeStr} altas={altas} baixas={baixas} loading={loading} erro={erro} />}
+      {page === "bluechips" && <BlueChipsPage />}
       {page === "blog" && <BlogPage onDashboard={() => setPage("home")} />}
 
       <div style={{ position:"relative", zIndex:2, textAlign:"center", marginTop:"40px", fontSize:"10px", color:"rgba(255,255,255,0.15)", letterSpacing:"0.08em" }}>
