@@ -303,7 +303,7 @@ function BlueChipsPage() {
       setErro(null);
 
       // Busca por volume — ordena pelo maior volume
-      const url = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=volume&sortOrder=desc&limit=50&type=stock`;
+      const url = `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}&sortBy=volume&sortOrder=desc&limit=100&type=stock`;
       const res = await fetch(url);
       const json = await res.json();
       const stocks = json.stocks || [];
@@ -312,6 +312,7 @@ function BlueChipsPage() {
         s.stock && s.close > 0 &&
         s.change !== null && s.change !== undefined &&
         s.volume > 0 &&
+        s.market_cap >= 10e9 && // apenas Large Caps (Big Caps)
         /^[A-Z]{4}\d{1,2}$/.test(s.stock)
       );
 
@@ -329,13 +330,16 @@ function BlueChipsPage() {
           marketCap: s.market_cap || null,
         })));
       } else {
-        // Fallback fora do pregão — lista fixa das principais blue chips
-        const tickers = "PETR4,VALE3,ITUB4,BBDC4,ABEV3,WEGE3,BBAS3,SUZB3,GGBR4,RDOR3,EMBR3,JBSS3,RENT3,BPAC11,SBSP3";
+        // Fallback fora do pregão — lista fixa das principais Large Caps da B3
+        const tickers = "PETR4,VALE3,ITUB4,BBDC4,ABEV3,WEGE3,BBAS3,SUZB3,GGBR4,RDOR3,EMBR3,RENT3,BPAC11,SBSP3,VIVT3";
         const resFallback = await fetch(`https://brapi.dev/api/quote/${tickers}?token=${BRAPI_TOKEN}`);
         const jsonFallback = await resFallback.json();
         const results = jsonFallback.results || [];
 
-        const validas = results.filter(s => s && s.regularMarketPrice > 0);
+        const validas = results.filter(s =>
+          s && s.regularMarketPrice > 0 &&
+          (s.marketCap || 0) >= 10e9 // garante Large Cap no fallback também
+        );
         const ordenadas = [...validas].sort((a, b) => b.regularMarketChangePercent - a.regularMarketChangePercent);
 
         setChips(ordenadas.map(s => ({
