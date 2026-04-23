@@ -236,13 +236,21 @@ function ColHeader({ tipo }) {
 
 function Navbar({ page, setPage }) {
   return (
-    <nav style={{ position:"relative", zIndex:10, display:"flex", alignItems:"center", justifyContent:"space-between", maxWidth:"860px", margin:"0 auto 28px", padding:"10px 18px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:"12px" }}>
+    <nav style={{
+      position:"relative", zIndex:10,
+      display:"flex", flexDirection:"column", alignItems:"center", gap:"8px",
+      maxWidth:"860px", margin:"0 auto 28px",
+      padding:"10px 14px",
+      background:"rgba(255,255,255,0.03)",
+      border:"1px solid rgba(255,255,255,0.08)",
+      borderRadius:"12px",
+    }}>
       <button onClick={() => setPage("home")} style={{ background:"none", border:"none", cursor:"pointer", padding:0 }}>
         <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"18px", color:"#fff", letterSpacing:"-0.02em" }}>
           RADAR <span style={{ color:"#00e87a" }}>B3</span>
         </span>
       </button>
-      <div style={{ display:"flex", gap:"4px" }}>
+      <div style={{ display:"flex", gap:"4px", flexWrap:"wrap", justifyContent:"center" }}>
         {[
           {label:"Dashboard", key:"home"},
           {label:"Blue Chips", key:"bluechips"},
@@ -252,10 +260,10 @@ function Navbar({ page, setPage }) {
           <button key={key} onClick={() => setPage(key)} style={{
             background: page===key ? (key==="bluechips" ? "rgba(30,144,255,0.15)" : key==="mercado" ? "rgba(255,165,0,0.15)" : "rgba(0,232,122,0.1)") : "none",
             border: page===key ? (key==="bluechips" ? "1px solid rgba(30,144,255,0.4)" : key==="mercado" ? "1px solid rgba(255,165,0,0.4)" : "1px solid rgba(0,232,122,0.25)") : "1px solid transparent",
-            borderRadius:"8px", padding:"6px 16px", cursor:"pointer",
-            fontFamily:"'DM Mono',monospace", fontSize:"12px", fontWeight:500,
+            borderRadius:"8px", padding:"6px 12px", cursor:"pointer",
+            fontFamily:"'DM Mono',monospace", fontSize:"11px", fontWeight:500,
             color: page===key ? (key==="bluechips" ? "#1e90ff" : key==="mercado" ? "#ffa500" : "#00e87a") : "rgba(255,255,255,0.4)",
-            letterSpacing:"0.05em", transition:"all 0.2s",
+            letterSpacing:"0.04em", transition:"all 0.2s", whiteSpace:"nowrap",
           }}>
             {label}
           </button>
