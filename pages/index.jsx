@@ -175,7 +175,7 @@ function StockCard({ stock, rank, tipo, animate }) {
           {stock.ticker}
         </div>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", fontWeight:700, color:corNum, lineHeight:1 }}>
-          {isAlta?"+":""}{stock.variacao.toFixed(2)}%
+          {stock.variacao > 0 ? "+" : ""}{stock.variacao.toFixed(2)}%
         </div>
       </div>
       <div style={{ width:"1px", height:"34px", background:"rgba(255,255,255,0.08)", flexShrink:0 }} />
