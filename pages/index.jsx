@@ -175,7 +175,7 @@ function StockCard({ stock, rank, tipo, animate }) {
           {stock.ticker}
         </div>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", fontWeight:700, color:corNum, lineHeight:1 }}>
-        {stock.variacao > 0 ? "+" : ""}{stock.variacao.toFixed(2)}%
+          {isAlta?"+":""}{stock.variacao.toFixed(2)}%
         </div>
       </div>
       <div style={{ width:"1px", height:"34px", background:"rgba(255,255,255,0.08)", flexShrink:0 }} />
@@ -243,13 +243,18 @@ function Navbar({ page, setPage }) {
         </span>
       </button>
       <div style={{ display:"flex", gap:"4px" }}>
-        {[{label:"Dashboard",key:"home"},{label:"Blue Chips",key:"bluechips"},{label:"Blog",key:"blog"}].map(({label,key}) => (
+        {[
+          {label:"Dashboard", key:"home"},
+          {label:"Blue Chips", key:"bluechips"},
+          {label:"Mercado", key:"mercado"},
+          {label:"Blog", key:"blog"},
+        ].map(({label,key}) => (
           <button key={key} onClick={() => setPage(key)} style={{
-            background: page===key ? (key==="bluechips" ? "rgba(30,144,255,0.15)" : "rgba(0,232,122,0.1)") : "none",
-            border: page===key ? (key==="bluechips" ? "1px solid rgba(30,144,255,0.4)" : "1px solid rgba(0,232,122,0.25)") : "1px solid transparent",
+            background: page===key ? (key==="bluechips" ? "rgba(30,144,255,0.15)" : key==="mercado" ? "rgba(255,165,0,0.15)" : "rgba(0,232,122,0.1)") : "none",
+            border: page===key ? (key==="bluechips" ? "1px solid rgba(30,144,255,0.4)" : key==="mercado" ? "1px solid rgba(255,165,0,0.4)" : "1px solid rgba(0,232,122,0.25)") : "1px solid transparent",
             borderRadius:"8px", padding:"6px 16px", cursor:"pointer",
             fontFamily:"'DM Mono',monospace", fontSize:"12px", fontWeight:500,
-            color: page===key ? (key==="bluechips" ? "#1e90ff" : "#00e87a") : "rgba(255,255,255,0.4)",
+            color: page===key ? (key==="bluechips" ? "#1e90ff" : key==="mercado" ? "#ffa500" : "#00e87a") : "rgba(255,255,255,0.4)",
             letterSpacing:"0.05em", transition:"all 0.2s",
           }}>
             {label}
@@ -450,6 +455,500 @@ function BlueChipsPage() {
       {/* Ad banner */}
       <div style={{ maxWidth:"728px", margin:"32px auto 0", height:"90px", border:"1px dashed rgba(255,255,255,0.08)", borderRadius:"8px", display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,0.02)" }}>
         <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.18)", letterSpacing:"0.15em", textTransform:"uppercase" }}>Espaço publicitário · 728×90</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── PÁGINA MERCADO — HISTOGRAMA ──────────────────────────────────────────────
+function MercadoPage() {
+  const [variacoes, setVariacoes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [hover, setHover] = useState(null);
+
+  const timeStr = lastUpdate
+    ? lastUpdate.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" })
+    : "";
+
+  async function fetchMercado() {
+    try {
+      // Busca as 80 ações com maior volume em 8 lotes de 10
+      const lotes = [
+        "PETR4,VALE3,ITUB4,BBDC4,ABEV3,WEGE3,RENT3,BBAS3,SUZB3,GGBR4",
+        "PRIO3,RDOR3,RADL3,EQTL3,TOTS3,EMBR3,JBSS3,CSAN3,SBSP3,CPFE3",
+        "ELET3,CMIG4,VIVT3,TIMS3,CYRE3,MRVE3,LREN3,HAPV3,BPAC11,BEEF3",
+        "MGLU3,COGN3,IRBR3,USIM5,CSNA3,GGBR3,BRFS3,SLCE3,AGRO3,ARZZ3",
+        "SOMA3,HBSA3,RECV3,RRRP3,VBBR3,JHSF3,MOVI3,TEND3,GFSA3,MRVE3",
+        "OIBR3,AZUL4,GOLL4,CVCB3,YDUQ3,NTCO3,MYPK3,RAIL3,CCRO3,ECOR3",
+        "ENEV3,ENGI11,TAEE11,TRPL4,EGIE3,AURE3,CSMG3,SAPR11,ODPV3,FLRY3",
+        "LWSA3,PETZ3,AMER3,VIIA3,SEER3,ROMI3,FRAS3,TUPY3,UNIP6,PTBL3",
+      ];
+
+      const resultados = await Promise.all(
+        lotes.map(l =>
+          fetch(`https://brapi.dev/api/quote/${l}?token=${BRAPI_TOKEN}`)
+            .then(r => r.json())
+            .then(d => d.results || [])
+            .catch(() => [])
+        )
+      );
+
+      const validas = resultados.flat()
+        .filter(s => s && s.regularMarketChangePercent !== null && s.regularMarketChangePercent !== undefined)
+        .map(s => ({
+          ticker: s.symbol,
+          variacao: s.regularMarketChangePercent,
+        }));
+
+      setVariacoes(validas);
+      setLastUpdate(new Date());
+      setLoading(false);
+    } catch(e) {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchMercado();
+    const iv = setInterval(fetchMercado, 60000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Monta os buckets do histograma
+  const FAIXAS = [
+    {label:"< -8%",  min:-Infinity, max:-8},
+    {label:"-8 a -6",min:-8,        max:-6},
+    {label:"-6 a -4",min:-6,        max:-4},
+    {label:"-4 a -2",min:-4,        max:-2},
+    {label:"-2 a  0",min:-2,        max: 0},
+    {label:" 0 a +2",min: 0,        max: 2},
+    {label:"+2 a +4",min: 2,        max: 4},
+    {label:"+4 a +6",min: 4,        max: 6},
+    {label:"+6 a +8",min: 6,        max: 8},
+    {label:"> +8%",  min: 8,        max:Infinity},
+  ];
+
+  const buckets = FAIXAS.map((f, i) => ({
+    ...f,
+    idx: i,
+    acoes: variacoes.filter(v => v.variacao >= f.min && v.variacao < f.max),
+    count: variacoes.filter(v => v.variacao >= f.min && v.variacao < f.max).length,
+  }));
+
+  const maxCount = Math.max(...buckets.map(b => b.count), 1);
+  const total = variacoes.length;
+  const positivas = variacoes.filter(v => v.variacao >= 0).length;
+  const negativas = variacoes.filter(v => v.variacao < 0).length;
+  const mediaVar = total > 0 ? (variacoes.reduce((a,b) => a + b.variacao, 0) / total).toFixed(2) : "0.00";
+
+  // Curva de densidade suave (gaussiana aproximada)
+  const W = 600; const H = 200; const PAD = 40;
+  const bW = (W - PAD*2) / buckets.length;
+
+  const curvaPoints = buckets.map((b, i) => {
+    const x = PAD + i * bW + bW/2;
+    const y = PAD + (H - PAD*2) - ((b.count / maxCount) * (H - PAD*2));
+    return `${x},${y}`;
+  }).join(" ");
+
+  return (
+    <div style={{ position:"relative", zIndex:2, maxWidth:"860px", margin:"0 auto" }}>
+
+      {/* Header */}
+      <div style={{ textAlign:"center", marginBottom:"28px" }}>
+        <div style={{ display:"inline-flex", alignItems:"center", gap:"10px", background:"rgba(255,165,0,0.06)", border:"1px solid rgba(255,165,0,0.2)", borderRadius:"6px", padding:"4px 14px", marginBottom:"10px" }}>
+          <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#ffa500", boxShadow:"0 0 8px #ffa500", animation:"pulse 2s infinite" }} />
+          <span style={{ fontSize:"10px", letterSpacing:"0.2em", color:"rgba(255,165,0,0.8)", textTransform:"uppercase" }}>
+            DISTRIBUIÇÃO · B3
+          </span>
+        </div>
+        <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(20px,4vw,28px)", color:"#fff", letterSpacing:"-0.02em", marginBottom:"6px" }}>
+          Distribuição de <span style={{ color:"#ffa500" }}>Variações</span>
+        </h2>
+        <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"rgba(255,255,255,0.3)" }}>
+          80 ações por volume · Agrupadas por faixa de variação %
+          {timeStr ? ` · Atualizado às ${timeStr}` : ""}
+        </p>
+      </div>
+
+      {/* KPIs */}
+      {!loading && (
+        <div style={{ display:"flex", gap:"12px", justifyContent:"center", marginBottom:"28px", flexWrap:"wrap" }}>
+          {[
+            { label:"Total", valor:`${total} ações`, cor:"rgba(255,255,255,0.6)" },
+            { label:"Em alta", valor:`${positivas}`, cor:"#00e87a" },
+            { label:"Em baixa", valor:`${negativas}`, cor:"#ff5050" },
+            { label:"Média", valor:`${mediaVar > 0 ? "+" : ""}${mediaVar}%`, cor: parseFloat(mediaVar) >= 0 ? "#00e87a" : "#ff5050" },
+          ].map(k => (
+            <div key={k.label} style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:"8px", padding:"10px 20px", textAlign:"center" }}>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.3)", marginBottom:"4px", letterSpacing:"0.08em" }}>{k.label}</div>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"18px", color:k.cor }}>{k.valor}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Histograma */}
+      <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"12px", padding:"24px", marginBottom:"20px" }}>
+        {loading ? (
+          <div style={{ height:"240px", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono',monospace", fontSize:"12px", color:"rgba(255,255,255,0.3)" }}>
+            Carregando dados...
+          </div>
+        ) : (
+          <div style={{ position:"relative" }}>
+            {/* Barras */}
+            <div style={{ display:"flex", alignItems:"flex-end", gap:"4px", height:"200px", padding:"0 8px" }}>
+              {buckets.map((b, i) => {
+                const isPos = b.min >= 0;
+                const isNeg = b.max <= 0;
+                const cor = isPos ? "#00e87a" : isNeg ? "#ff4444" : "#f0a500";
+                const altura = maxCount > 0 ? (b.count / maxCount) * 180 : 0;
+                const isHov = hover === i;
+
+                return (
+                  <div
+                    key={i}
+                    style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:"4px", cursor:"pointer" }}
+                    onMouseEnter={() => setHover(i)}
+                    onMouseLeave={() => setHover(null)}
+                  >
+                    {/* Tooltip */}
+                    {isHov && (
+                      <div style={{
+                        position:"absolute", top:0, background:"rgba(0,0,0,0.85)",
+                        border:`1px solid ${cor}40`, borderRadius:"6px", padding:"8px 12px",
+                        fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"#fff",
+                        zIndex:10, whiteSpace:"nowrap", pointerEvents:"none",
+                        left:"50%", transform:"translateX(-50%)",
+                      }}>
+                        <div style={{ color:cor, fontWeight:700, marginBottom:"4px" }}>{b.label}%</div>
+                        <div>{b.count} ação{b.count !== 1 ? "ões" : ""}</div>
+                        {b.acoes.slice(0,5).map(a => (
+                          <div key={a.ticker} style={{ color:"rgba(255,255,255,0.5)", fontSize:"10px" }}>
+                            {a.ticker} {a.variacao > 0 ? "+" : ""}{a.variacao.toFixed(2)}%
+                          </div>
+                        ))}
+                        {b.acoes.length > 5 && <div style={{ color:"rgba(255,255,255,0.3)", fontSize:"10px" }}>+{b.acoes.length - 5} mais</div>}
+                      </div>
+                    )}
+
+                    {/* Contador */}
+                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color: b.count > 0 ? cor : "transparent" }}>
+                      {b.count}
+                    </div>
+
+                    {/* Barra */}
+                    <div style={{
+                      width:"100%", height:`${altura}px`,
+                      background: isHov ? cor : `${cor}88`,
+                      borderRadius:"4px 4px 0 0",
+                      transition:"all 0.2s",
+                      minHeight: b.count > 0 ? "4px" : "0",
+                    }} />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Curva SVG sobre as barras */}
+            {buckets.some(b => b.count > 0) && (
+              <svg
+                style={{ position:"absolute", top:20, left:8, right:8, pointerEvents:"none" }}
+                width="100%" height="200px"
+                viewBox={`0 0 ${W} ${H}`}
+                preserveAspectRatio="none"
+              >
+                <polyline
+                  points={curvaPoints}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.4)"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  strokeDasharray="4 2"
+                />
+                {buckets.map((b, i) => {
+                  const x = PAD + i * bW + bW/2;
+                  const y = PAD + (H - PAD*2) - ((b.count / maxCount) * (H - PAD*2));
+                  if (b.count === 0) return null;
+                  return <circle key={i} cx={x} cy={y} r="3" fill="rgba(255,255,255,0.6)" />;
+                })}
+              </svg>
+            )}
+
+            {/* Eixo X */}
+            <div style={{ display:"flex", gap:"4px", padding:"8px 8px 0", borderTop:"1px solid rgba(255,255,255,0.06)", marginTop:"4px" }}>
+              {buckets.map((b, i) => (
+                <div key={i} style={{ flex:1, textAlign:"center", fontFamily:"'DM Mono',monospace", fontSize:"8px", color:"rgba(255,255,255,0.3)", lineHeight:1.2 }}>
+                  {b.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Legenda */}
+      <div style={{ display:"flex", gap:"20px", justifyContent:"center", fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.3)", marginBottom:"40px" }}>
+        <span><span style={{ color:"#00e87a" }}>■</span> Variação positiva</span>
+        <span><span style={{ color:"#ff4444" }}>■</span> Variação negativa</span>
+        <span><span style={{ color:"rgba(255,255,255,0.4)" }}>----</span> Curva de distribuição</span>
+      </div>
+
+      {/* Gráfico de Linhas — Índices Mundiais */}
+      <IndicesMundiaisChart />
+    </div>
+  );
+}
+
+// ─── GRÁFICO ÍNDICES MUNDIAIS ─────────────────────────────────────────────────
+const INDICES = [
+  { ticker:"%5EGSPC",  nome:"S&P 500",      cor:"#4af0a0", grossura:1.5 },
+  { ticker:"%5EIXIC",  nome:"Nasdaq",        cor:"#4ab8ff", grossura:1.5 },
+  { ticker:"%5ESTOXX50E", nome:"Euro Stoxx", cor:"#c084fc", grossura:1.5 },
+  { ticker:"%5EN225",  nome:"Nikkei 225",    cor:"#fb923c", grossura:1.5 },
+  { ticker:"%5EFTSE",  nome:"FTSE 100",      cor:"#facc15", grossura:1.5 },
+  { ticker:"%5EBVSP",  nome:"Ibovespa",      cor:"#00e87a", grossura:3   },
+];
+
+function IndicesMundiaisChart() {
+  const [series, setSeries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [hoverX, setHoverX] = useState(null);
+  const [tooltipData, setTooltipData] = useState(null);
+
+  useEffect(() => {
+    async function fetchIndices() {
+      try {
+        const resultados = await Promise.all(
+          INDICES.map(idx =>
+            fetch(`https://brapi.dev/api/quote/${idx.ticker}?range=1mo&interval=1d&token=${BRAPI_TOKEN}`)
+              .then(r => r.json())
+              .then(d => {
+                const hist = d.results?.[0]?.historicalDataPrice || [];
+                return { ...idx, hist };
+              })
+              .catch(() => ({ ...idx, hist: [] }))
+          )
+        );
+
+        // Pega todas as datas únicas ordenadas
+        const todasDatas = [...new Set(
+          resultados.flatMap(r => r.hist.map(p => p.date))
+        )].sort();
+
+        // Para cada série, normaliza para % acumulada desde o dia 0
+        const seriesProcessadas = resultados.map(r => {
+          // Monta mapa de data → preço
+          const mapaPrecos = {};
+          r.hist.forEach(p => { if (p.close) mapaPrecos[p.date] = p.close; });
+
+          // Interpola gaps
+          const precos = [];
+          let ultimoPreco = null;
+          todasDatas.forEach(d => {
+            if (mapaPrecos[d]) {
+              ultimoPreco = mapaPrecos[d];
+              precos.push(mapaPrecos[d]);
+            } else if (ultimoPreco) {
+              precos.push(ultimoPreco); // interpolação pelo último valor
+            } else {
+              precos.push(null);
+            }
+          });
+
+          // Normaliza: % acumulada desde o primeiro preço válido
+          const primeiroValido = precos.find(p => p !== null);
+          const pctAcumulada = precos.map(p =>
+            p !== null && primeiroValido ? ((p - primeiroValido) / primeiroValido) * 100 : null
+          );
+
+          return { ...r, datas: todasDatas, pct: pctAcumulada };
+        });
+
+        setSeries(seriesProcessadas);
+        setLoading(false);
+      } catch(e) {
+        setLoading(false);
+      }
+    }
+    fetchIndices();
+  }, []);
+
+  if (loading) return (
+    <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"12px", padding:"24px", height:"300px", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono',monospace", fontSize:"12px", color:"rgba(255,255,255,0.3)" }}>
+      Carregando índices mundiais...
+    </div>
+  );
+
+  if (!series.length || !series[0].datas?.length) return null;
+
+  const datas = series[0]?.datas || [];
+  const W = 800; const H = 280; const PL = 50; const PR = 20; const PT = 20; const PB = 30;
+  const gW = W - PL - PR;
+  const gH = H - PT - PB;
+
+  // Range Y
+  const todosValores = series.flatMap(s => s.pct.filter(v => v !== null));
+  const minY = Math.min(...todosValores, -1);
+  const maxY = Math.max(...todosValores, 1);
+  const rangeY = maxY - minY || 1;
+
+  const toX = (i) => PL + (i / (datas.length - 1)) * gW;
+  const toY = (v) => PT + gH - ((v - minY) / rangeY) * gH;
+
+  // Linhas de grade Y
+  const gridLines = [-4,-2,0,2,4].filter(v => v >= minY && v <= maxY);
+
+  // Labels datas (a cada 5 dias)
+  const labelDatas = datas.filter((_, i) => i % 5 === 0 || i === datas.length - 1);
+
+  return (
+    <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"12px", padding:"24px", marginBottom:"20px" }}>
+
+      {/* Título */}
+      <div style={{ marginBottom:"16px" }}>
+        <h3 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"16px", color:"#fff", marginBottom:"4px" }}>
+          Variação Acumulada — <span style={{ color:"#ffa500" }}>Últimos 30 dias</span>
+        </h3>
+        <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.3)" }}>
+          Base 0% no primeiro dia · Interpolação nos gaps · Fechamento diário
+        </p>
+      </div>
+
+      {/* SVG do gráfico */}
+      <div style={{ position:"relative", overflowX:"auto" }}>
+        <svg
+          width="100%" viewBox={`0 0 ${W} ${H}`}
+          style={{ display:"block", cursor:"crosshair" }}
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const xRel = (e.clientX - rect.left) / rect.width * W;
+            const idx = Math.round((xRel - PL) / gW * (datas.length - 1));
+            if (idx >= 0 && idx < datas.length) {
+              setHoverX(idx);
+              setTooltipData({
+                data: datas[idx],
+                valores: series.map(s => ({ nome: s.nome, cor: s.cor, val: s.pct[idx] }))
+              });
+            }
+          }}
+          onMouseLeave={() => { setHoverX(null); setTooltipData(null); }}
+        >
+          {/* Grade horizontal */}
+          {gridLines.map(v => (
+            <g key={v}>
+              <line x1={PL} y1={toY(v)} x2={W-PR} y2={toY(v)}
+                stroke={v === 0 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.06)"}
+                strokeWidth={v === 0 ? 1.5 : 1}
+                strokeDasharray={v === 0 ? "none" : "3 3"}
+              />
+              <text x={PL-4} y={toY(v)+4} textAnchor="end"
+                fill="rgba(255,255,255,0.3)" fontSize="9" fontFamily="monospace">
+                {v > 0 ? "+" : ""}{v}%
+              </text>
+            </g>
+          ))}
+
+          {/* Labels eixo X */}
+          {labelDatas.map(d => {
+            const i = datas.indexOf(d);
+            const dt = new Date(d * 1000);
+            const label = `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}`;
+            return (
+              <text key={d} x={toX(i)} y={H-8} textAnchor="middle"
+                fill="rgba(255,255,255,0.25)" fontSize="8" fontFamily="monospace">
+                {label}
+              </text>
+            );
+          })}
+
+          {/* Linha vertical do hover */}
+          {hoverX !== null && (
+            <line x1={toX(hoverX)} y1={PT} x2={toX(hoverX)} y2={H-PB}
+              stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeDasharray="3 3" />
+          )}
+
+          {/* Séries — Ibovespa por último para ficar na frente */}
+          {[...series.filter(s => s.nome !== "Ibovespa"), ...series.filter(s => s.nome === "Ibovespa")].map(s => {
+            const pontos = s.pct
+              .map((v, i) => v !== null ? `${toX(i)},${toY(v)}` : null)
+              .filter(Boolean)
+              .join(" ");
+
+            const isIbov = s.nome === "Ibovespa";
+
+            return (
+              <g key={s.nome}>
+                <polyline
+                  points={pontos}
+                  fill="none"
+                  stroke={s.cor}
+                  strokeWidth={isIbov ? 3 : 1.5}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  opacity={isIbov ? 1 : 0.7}
+                />
+                {/* Ponto final */}
+                {s.pct[s.pct.length-1] !== null && (
+                  <circle
+                    cx={toX(s.pct.length-1)}
+                    cy={toY(s.pct[s.pct.length-1])}
+                    r={isIbov ? 4 : 2.5}
+                    fill={s.cor}
+                  />
+                )}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Tooltip */}
+        {tooltipData && (
+          <div style={{
+            position:"absolute", top:16, right:16,
+            background:"rgba(10,12,15,0.95)",
+            border:"1px solid rgba(255,255,255,0.1)",
+            borderRadius:"8px", padding:"10px 14px",
+            fontFamily:"'DM Mono',monospace", fontSize:"11px",
+            pointerEvents:"none", minWidth:"160px",
+          }}>
+            <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"10px", marginBottom:"8px" }}>
+              {(() => {
+                const dt = new Date(tooltipData.data * 1000);
+                return `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`;
+              })()}
+            </div>
+            {tooltipData.valores.map(v => (
+              <div key={v.nome} style={{ display:"flex", justifyContent:"space-between", gap:"16px", marginBottom:"4px" }}>
+                <span style={{ color: v.nome === "Ibovespa" ? v.cor : "rgba(255,255,255,0.5)", fontWeight: v.nome === "Ibovespa" ? 700 : 400 }}>
+                  {v.nome}
+                </span>
+                <span style={{ color: v.val === null ? "rgba(255,255,255,0.2)" : v.val >= 0 ? "#00e87a" : "#ff5050" }}>
+                  {v.val === null ? "—" : `${v.val >= 0 ? "+" : ""}${v.val.toFixed(2)}%`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Legenda */}
+      <div style={{ display:"flex", flexWrap:"wrap", gap:"12px", marginTop:"16px", justifyContent:"center" }}>
+        {series.map(s => (
+          <div key={s.nome} style={{ display:"flex", alignItems:"center", gap:"6px", fontFamily:"'DM Mono',monospace", fontSize:"10px" }}>
+            <div style={{ width: s.nome==="Ibovespa" ? "20px" : "16px", height: s.nome==="Ibovespa" ? "3px" : "2px", background:s.cor, borderRadius:"2px" }} />
+            <span style={{ color: s.nome==="Ibovespa" ? s.cor : "rgba(255,255,255,0.45)", fontWeight: s.nome==="Ibovespa" ? 700 : 400 }}>
+              {s.nome}
+            </span>
+            {s.pct?.length > 0 && s.pct[s.pct.length-1] !== null && (
+              <span style={{ color: s.pct[s.pct.length-1] >= 0 ? "#00e87a" : "#ff5050" }}>
+                {s.pct[s.pct.length-1] >= 0 ? "+" : ""}{s.pct[s.pct.length-1].toFixed(2)}%
+              </span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -734,6 +1233,7 @@ export default function App() {
 
       {page === "home" && <DashboardPage timeStr={timeStr} altas={altas} baixas={baixas} loading={loading} erro={erro} />}
       {page === "bluechips" && <BlueChipsPage />}
+      {page === "mercado" && <MercadoPage />}
       {page === "blog" && <BlogPage onDashboard={() => setPage("home")} />}
 
       <div style={{ position:"relative", zIndex:2, textAlign:"center", marginTop:"40px", fontSize:"10px", color:"rgba(255,255,255,0.15)", letterSpacing:"0.08em" }}>
