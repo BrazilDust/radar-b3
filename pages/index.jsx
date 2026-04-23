@@ -89,17 +89,61 @@ function formatPorte(marketCap) {
   return "Small Cap";
 }
 
+// ─── FERIADOS B3 (mês/dia) ────────────────────────────────────────────────────
+// Feriados fixos — válidos para qualquer ano
+const FERIADOS_FIXOS = [
+  "01-01", // Confraternização Universal
+  "21-04", // Tiradentes
+  "01-05", // Dia do Trabalho
+  "07-09", // Independência
+  "12-10", // Nossa Senhora Aparecida
+  "02-11", // Finados
+  "15-11", // Proclamação da República
+  "20-11", // Consciência Negra
+  "24-12", // Véspera de Natal
+  "25-12", // Natal
+  "31-12", // Véspera de Ano Novo
+];
+
+// Feriados móveis por ano (Carnaval e Corpus Christi mudam todo ano)
+const FERIADOS_MOVEIS = {
+  2025: ["03-03","04-03","18-04","19-06"],
+  2026: ["16-02","17-02","03-04","04-06"],
+  2027: ["08-02","09-02","26-03","24-06"],
+};
+
+function isFeriadoB3(data) {
+  const dia = String(data.getDate()).padStart(2,"0");
+  const mes = String(data.getMonth()+1).padStart(2,"0");
+  const ano = data.getFullYear();
+  const chave = `${dia}-${mes}`;
+  if (FERIADOS_FIXOS.includes(chave)) return true;
+  const moveis = FERIADOS_MOVEIS[ano] || [];
+  return moveis.includes(chave);
+}
+
 function getPregaoStatus() {
   const agora = new Date();
   const diaSemana = agora.getDay();
   const totalMin = agora.getHours() * 60 + agora.getMinutes();
   const fimDeSemana = diaSemana === 0 || diaSemana === 6;
+  const feriado = isFeriadoB3(agora);
 
-  if (fimDeSemana) return { cor:"#555", pulsar:false, label:"MERCADO FECHADO", bgBorder:"rgba(255,255,255,0.06)" };
-  if (totalMin >= 540 && totalMin < 600) return { cor:"#f0a500", pulsar:false, label:"PRÉ-ABERTURA · B3", bgBorder:"rgba(240,165,0,0.2)" };
-  if (totalMin >= 600 && totalMin < 1020) return { cor:"#00e87a", pulsar:true, label:"AO VIVO · B3", bgBorder:"rgba(0,232,122,0.15)" };
-  if (totalMin >= 1020 && totalMin < 1050) return { cor:"#f0a500", pulsar:false, label:"LEILÃO DE FECHAMENTO", bgBorder:"rgba(240,165,0,0.2)" };
-  return { cor:"#555", pulsar:false, label:"MERCADO FECHADO", bgBorder:"rgba(255,255,255,0.06)" };
+  if (fimDeSemana || feriado) return {
+    cor:"#555", pulsar:false, label:"MERCADO FECHADO", bgBorder:"rgba(255,255,255,0.06)"
+  };
+  if (totalMin >= 540 && totalMin < 600) return {
+    cor:"#f0a500", pulsar:false, label:"PRÉ-ABERTURA · B3", bgBorder:"rgba(240,165,0,0.2)"
+  };
+  if (totalMin >= 600 && totalMin < 1020) return {
+    cor:"#00e87a", pulsar:true, label:"AO VIVO · B3", bgBorder:"rgba(0,232,122,0.15)"
+  };
+  if (totalMin >= 1020 && totalMin < 1050) return {
+    cor:"#f0a500", pulsar:false, label:"LEILÃO DE FECHAMENTO", bgBorder:"rgba(240,165,0,0.2)"
+  };
+  return {
+    cor:"#555", pulsar:false, label:"MERCADO FECHADO", bgBorder:"rgba(255,255,255,0.06)"
+  };
 }
 
 function StockCard({ stock, rank, tipo, animate }) {
@@ -131,7 +175,7 @@ function StockCard({ stock, rank, tipo, animate }) {
           {stock.ticker}
         </div>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", fontWeight:700, color:corNum, lineHeight:1 }}>
-          {isAlta?"+":""}{stock.variacao.toFixed(2)}%
+        {stock.variacao > 0 ? "+" : ""}{stock.variacao.toFixed(2)}%
         </div>
       </div>
       <div style={{ width:"1px", height:"34px", background:"rgba(255,255,255,0.08)", flexShrink:0 }} />
