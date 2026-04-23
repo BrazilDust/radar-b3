@@ -704,8 +704,273 @@ function MercadoPage() {
         <span><span style={{ color:"rgba(255,255,255,0.4)" }}>----</span> Curva de distribuição</span>
       </div>
 
+      {/* Busca de Ticker */}
+      <TickerChart />
+
       {/* Gráfico de Linhas — Índices Mundiais */}
       <IndicesMundiaisChart />
+    </div>
+  );
+}
+
+// ─── BUSCA DE TICKER ──────────────────────────────────────────────────────────
+function TickerChart() {
+  const [input, setInput] = useState("");
+  const [ticker, setTicker] = useState("");
+  const [dados, setDados] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [hoverX, setHoverX] = useState(null);
+
+  async function buscarTicker() {
+    const t = input.trim().toUpperCase();
+    if (!t) return;
+    setLoading(true);
+    setErro(null);
+    setDados(null);
+    setTicker(t);
+
+    try {
+      const res = await fetch(
+        `https://brapi.dev/api/quote/${t}?range=1mo&interval=1d&token=${BRAPI_TOKEN}`
+      );
+      const json = await res.json();
+      const result = json.results?.[0];
+
+      if (!result || !result.regularMarketPrice) {
+        setErro("Ticker não encontrado.");
+        setLoading(false);
+        return;
+      }
+
+      const hist = result.historicalDataPrice || [];
+      if (hist.length < 2) {
+        setErro("Dados históricos insuficientes para este ticker.");
+        setLoading(false);
+        return;
+      }
+
+      // Calcula % acumulada base 0
+      const base = hist[0].close;
+      const pontos = hist
+        .filter(p => p.close)
+        .map(p => ({
+          data: p.date,
+          pct: ((p.close - base) / base) * 100,
+          preco: p.close,
+        }));
+
+      setDados({
+        nome: result.shortName || t,
+        ticker: t,
+        preco: result.regularMarketPrice,
+        variacao: result.regularMarketChangePercent,
+        pontos,
+      });
+      setLoading(false);
+    } catch {
+      setErro("Erro ao buscar dados. Tente novamente.");
+      setLoading(false);
+    }
+  }
+
+  const isAlta = dados?.variacao >= 0;
+  const cor = isAlta ? "#00e87a" : "#ff5050";
+
+  // SVG do gráfico
+  const W = 800; const H = 220; const PL = 50; const PR = 20; const PT = 20; const PB = 30;
+  const gW = W - PL - PR;
+  const gH = H - PT - PB;
+
+  const renderGrafico = () => {
+    if (!dados?.pontos?.length) return null;
+    const pts = dados.pontos;
+    const valores = pts.map(p => p.pct);
+    const minY = Math.min(...valores, -1);
+    const maxY = Math.max(...valores, 1);
+    const rangeY = maxY - minY || 1;
+
+    const toX = (i) => PL + (i / (pts.length - 1)) * gW;
+    const toY = (v) => PT + gH - ((v - minY) / rangeY) * gH;
+
+    const linhaPoints = pts.map((p, i) => `${toX(i)},${toY(p.pct)}`).join(" ");
+    const areaPoints = `${toX(0)},${toY(minY)} ${linhaPoints} ${toX(pts.length-1)},${toY(minY)}`;
+
+    const gridLines = [minY, 0, maxY].filter((v,i,a) => a.indexOf(v) === i);
+    const labelDatas = pts.filter((_, i) => i % 5 === 0 || i === pts.length - 1);
+
+    return (
+      <div style={{ position:"relative" }}>
+        <svg
+          width="100%" viewBox={`0 0 ${W} ${H}`}
+          style={{ display:"block", cursor:"crosshair" }}
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const xRel = (e.clientX - rect.left) / rect.width * W;
+            const idx = Math.round((xRel - PL) / gW * (pts.length - 1));
+            if (idx >= 0 && idx < pts.length) setHoverX(idx);
+          }}
+          onMouseLeave={() => setHoverX(null)}
+        >
+          <defs>
+            <linearGradient id="tickerGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={cor} stopOpacity="0.3" />
+              <stop offset="100%" stopColor={cor} stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+
+          {/* Grade */}
+          {gridLines.map(v => (
+            <g key={v}>
+              <line x1={PL} y1={toY(v)} x2={W-PR} y2={toY(v)}
+                stroke={v===0 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.06)"}
+                strokeWidth={v===0 ? 1.5 : 1} strokeDasharray={v===0?"none":"3 3"} />
+              <text x={PL-4} y={toY(v)+4} textAnchor="end"
+                fill="rgba(255,255,255,0.3)" fontSize="9" fontFamily="monospace">
+                {v >= 0 ? "+" : ""}{v.toFixed(1)}%
+              </text>
+            </g>
+          ))}
+
+          {/* Labels X */}
+          {labelDatas.map((p, i) => {
+            const idx = pts.indexOf(p);
+            const dt = new Date(p.data * 1000);
+            const label = `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}`;
+            return (
+              <text key={i} x={toX(idx)} y={H-8} textAnchor="middle"
+                fill="rgba(255,255,255,0.25)" fontSize="8" fontFamily="monospace">
+                {label}
+              </text>
+            );
+          })}
+
+          {/* Linha vertical hover */}
+          {hoverX !== null && (
+            <line x1={toX(hoverX)} y1={PT} x2={toX(hoverX)} y2={H-PB}
+              stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="3 3" />
+          )}
+
+          {/* Área preenchida */}
+          <polygon points={areaPoints} fill="url(#tickerGrad)" />
+
+          {/* Linha */}
+          <polyline points={linhaPoints} fill="none" stroke={cor}
+            strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+
+          {/* Ponto hover */}
+          {hoverX !== null && (
+            <circle cx={toX(hoverX)} cy={toY(pts[hoverX].pct)} r="4" fill={cor} />
+          )}
+        </svg>
+
+        {/* Tooltip */}
+        {hoverX !== null && (
+          <div style={{
+            position:"absolute", top:16, left:60,
+            background:"rgba(10,12,15,0.95)",
+            border:`1px solid ${cor}40`,
+            borderRadius:"8px", padding:"8px 12px",
+            fontFamily:"'DM Mono',monospace", fontSize:"11px",
+            pointerEvents:"none",
+          }}>
+            <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"10px", marginBottom:"4px" }}>
+              {(() => {
+                const dt = new Date(dados.pontos[hoverX].data * 1000);
+                return `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`;
+              })()}
+            </div>
+            <div style={{ color:cor, fontWeight:700 }}>
+              {dados.pontos[hoverX].pct >= 0 ? "+" : ""}{dados.pontos[hoverX].pct.toFixed(2)}%
+            </div>
+            <div style={{ color:"rgba(255,255,255,0.5)", fontSize:"10px" }}>
+              R$ {dados.pontos[hoverX].preco.toLocaleString("pt-BR", {minimumFractionDigits:2, maximumFractionDigits:2})}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ marginBottom:"40px" }}>
+      {/* Header */}
+      <div style={{ textAlign:"center", marginBottom:"20px" }}>
+        <h3 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"18px", color:"#fff", marginBottom:"4px" }}>
+          Buscar <span style={{ color:"#ffa500" }}>Ação</span>
+        </h3>
+        <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.3)" }}>
+          Digite o ticker e veja a variação % acumulada dos últimos 30 dias
+        </p>
+      </div>
+
+      {/* Campo de busca */}
+      <div style={{ display:"flex", gap:"8px", maxWidth:"400px", margin:"0 auto 20px" }}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value.toUpperCase())}
+          onKeyDown={e => e.key === "Enter" && buscarTicker()}
+          placeholder="Ex: PETR4, VALE3, MGLU3..."
+          style={{
+            flex:1, background:"rgba(255,255,255,0.05)",
+            border:"1px solid rgba(255,255,255,0.15)",
+            borderRadius:"8px", padding:"10px 14px",
+            fontFamily:"'DM Mono',monospace", fontSize:"13px",
+            color:"#fff", outline:"none",
+            letterSpacing:"0.05em",
+          }}
+        />
+        <button
+          onClick={buscarTicker}
+          style={{
+            background:"rgba(255,165,0,0.15)", border:"1px solid rgba(255,165,0,0.4)",
+            borderRadius:"8px", padding:"10px 18px", cursor:"pointer",
+            fontFamily:"'DM Mono',monospace", fontSize:"12px",
+            color:"#ffa500", fontWeight:600, whiteSpace:"nowrap",
+          }}
+        >
+          BUSCAR
+        </button>
+      </div>
+
+      {/* Resultado */}
+      {loading && (
+        <div style={{ textAlign:"center", fontFamily:"'DM Mono',monospace", fontSize:"12px", color:"rgba(255,255,255,0.3)" }}>
+          Buscando {ticker}...
+        </div>
+      )}
+
+      {erro && (
+        <div style={{ textAlign:"center", fontFamily:"'DM Mono',monospace", fontSize:"13px", color:"#ff5050", padding:"20px",
+          background:"rgba(255,68,68,0.06)", border:"1px solid rgba(255,68,68,0.2)", borderRadius:"10px", maxWidth:"400px", margin:"0 auto" }}>
+          {erro}
+        </div>
+      )}
+
+      {dados && !loading && (
+        <div style={{ background:"rgba(255,255,255,0.02)", border:`1px solid ${cor}30`, borderRadius:"12px", padding:"20px" }}>
+          {/* Info do ticker */}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"16px", flexWrap:"wrap", gap:"8px" }}>
+            <div>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"20px", color:cor }}>
+                {dados.ticker}
+              </div>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"rgba(255,255,255,0.4)" }}>
+                {dados.nome}
+              </div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"16px", color:"rgba(255,255,255,0.85)", fontWeight:500 }}>
+                {formatPreco(dados.preco)}
+              </div>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"13px", color:cor, fontWeight:700 }}>
+                {dados.variacao >= 0 ? "+" : ""}{dados.variacao?.toFixed(2)}% hoje
+              </div>
+            </div>
+          </div>
+          {renderGrafico()}
+        </div>
+      )}
     </div>
   );
 }
