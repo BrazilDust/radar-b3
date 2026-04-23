@@ -317,9 +317,9 @@ function BlueChipsPage() {
       );
 
       if (filtradas.length > 0) {
-        // Pega as 15 com maior volume e ordena por variação %
-        const top15 = filtradas.slice(0, 15);
-        const ordenadas = [...top15].sort((a, b) => b.change - a.change);
+        // Pega as 10 com maior volume e ordena por variação %
+        const top10 = filtradas.slice(0, 10);
+        const ordenadas = [...top10].sort((a, b) => b.change - a.change);
 
         setChips(ordenadas.map(s => ({
           ticker: s.stock,
@@ -331,14 +331,18 @@ function BlueChipsPage() {
         })));
       } else {
         // Fallback fora do pregão — lista fixa das principais Large Caps da B3
-        const tickers = "PETR4,VALE3,ITUB4,BBDC4,ABEV3,WEGE3,BBAS3,SUZB3,GGBR4,RDOR3,EMBR3,RENT3,BPAC11,SBSP3,VIVT3";
-        const resFallback = await fetch(`https://brapi.dev/api/quote/${tickers}?token=${BRAPI_TOKEN}`);
-        const jsonFallback = await resFallback.json();
-        const results = jsonFallback.results || [];
-
-        const validas = results.filter(s =>
-          s && s.regularMarketPrice > 0 &&
-          (s.marketCap || 0) >= 10e9 // garante Large Cap no fallback também
+        // Fallback fora do pregão — 1 lote de 10 Large Caps
+        const lotes = [
+          "PETR4,VALE3,ITUB4,BBDC4,ABEV3,WEGE3,BBAS3,SUZB3,GGBR4,RDOR3",
+        ];
+        const resultados = await Promise.all(
+          lotes.map(l =>
+            fetch(`https://brapi.dev/api/quote/${l}?token=${BRAPI_TOKEN}`)
+              .then(r => r.json()).then(d => d.results || []).catch(() => [])
+          )
+        );
+        const validas = resultados.flat().filter(s =>
+          s && s.regularMarketPrice > 0
         );
         const ordenadas = [...validas].sort((a, b) => b.regularMarketChangePercent - a.regularMarketChangePercent);
 
@@ -377,7 +381,7 @@ function BlueChipsPage() {
           </span>
         </div>
         <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(20px,4vw,28px)", color:"#fff", letterSpacing:"-0.02em", marginBottom:"6px" }}>
-          Top 15 por <span style={{ color:"#1e90ff" }}>Volume</span>
+          Top 10 por <span style={{ color:"#1e90ff" }}>Volume</span>
         </h2>
         <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"rgba(255,255,255,0.3)" }}>
           Selecionadas pelo maior volume financeiro · Classificadas por variação %
