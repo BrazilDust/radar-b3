@@ -704,11 +704,11 @@ function MercadoPage() {
         <span><span style={{ color:"rgba(255,255,255,0.4)" }}>----</span> Curva de distribuição</span>
       </div>
 
-      {/* Busca de Ticker */}
-      <TickerChart />
-
       {/* Gráfico de Linhas — Índices Mundiais */}
       <IndicesMundiaisChart />
+
+      {/* Busca de Ticker */}
+      <TickerChart />
     </div>
   );
 }
