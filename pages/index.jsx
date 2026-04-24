@@ -254,7 +254,7 @@ function Navbar({ page, setPage }) {
         {[
           {label:"Dashboard", key:"home"},
           {label:"Blue Chips", key:"bluechips"},
-          {label:"Mercado", key:"mercado"},
+          {label:"Análises", key:"mercado"},
           {label:"Blog", key:"blog"},
         ].map(({label,key}) => (
           <button key={key} onClick={() => setPage(key)} style={{
@@ -597,6 +597,15 @@ function MercadoPage() {
         </div>
       )}
 
+      {/* Título seção 1 */}
+      <div style={{ display:"flex", alignItems:"center", gap:"12px", marginBottom:"16px" }}>
+        <div style={{ height:"1px", flex:1, background:"rgba(255,165,0,0.2)" }} />
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,165,0,0.6)", letterSpacing:"0.15em", textTransform:"uppercase", whiteSpace:"nowrap" }}>
+          Histograma — Visão geral do mercado
+        </span>
+        <div style={{ height:"1px", flex:1, background:"rgba(255,165,0,0.2)" }} />
+      </div>
+
       {/* Histograma */}
       <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"12px", padding:"24px", marginBottom:"20px" }}>
         {loading ? (
@@ -704,8 +713,26 @@ function MercadoPage() {
         <span><span style={{ color:"rgba(255,255,255,0.4)" }}>----</span> Curva de distribuição</span>
       </div>
 
+      {/* Título seção 2 */}
+      <div style={{ display:"flex", alignItems:"center", gap:"12px", margin:"32px 0 16px" }}>
+        <div style={{ height:"1px", flex:1, background:"rgba(255,165,0,0.2)" }} />
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,165,0,0.6)", letterSpacing:"0.15em", textTransform:"uppercase", whiteSpace:"nowrap" }}>
+          Índices Mundiais — Contexto global
+        </span>
+        <div style={{ height:"1px", flex:1, background:"rgba(255,165,0,0.2)" }} />
+      </div>
+
       {/* Gráfico de Linhas — Índices Mundiais */}
       <IndicesMundiaisChart />
+
+      {/* Título seção 3 */}
+      <div style={{ display:"flex", alignItems:"center", gap:"12px", margin:"32px 0 16px" }}>
+        <div style={{ height:"1px", flex:1, background:"rgba(255,165,0,0.2)" }} />
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,165,0,0.6)", letterSpacing:"0.15em", textTransform:"uppercase", whiteSpace:"nowrap" }}>
+          Busca de Ação — Análise individual
+        </span>
+        <div style={{ height:"1px", flex:1, background:"rgba(255,165,0,0.2)" }} />
+      </div>
 
       {/* Busca de Ticker */}
       <TickerChart />
