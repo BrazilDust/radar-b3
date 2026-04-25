@@ -210,8 +210,8 @@ function Navbar({ page, setPage }) {
         <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"18px", color:"#fff", letterSpacing:"-0.02em" }}>RADAR <span style={{ color:"#00e87a" }}>B3</span></span>
       </button>
       <div style={{ display:"flex", gap:"4px", flexWrap:"wrap", justifyContent:"center" }}>
-        {[{label:"Dashboard",key:"home"},{label:"Blue Chips",key:"bluechips"},{label:"Análises",key:"mercado"},{label:"Blog",key:"blog"}].map(({label,key}) => (
-          <button key={key} onClick={() => setPage(key)} style={{ background:page===key?(key==="bluechips"?"rgba(30,144,255,0.15)":key==="mercado"?"rgba(255,165,0,0.15)":"rgba(0,232,122,0.1)"):"none", border:page===key?(key==="bluechips"?"1px solid rgba(30,144,255,0.4)":key==="mercado"?"1px solid rgba(255,165,0,0.4)":"1px solid rgba(0,232,122,0.25)"):"1px solid transparent", borderRadius:"8px", padding:"6px 12px", cursor:"pointer", fontFamily:"'DM Mono',monospace", fontSize:"11px", fontWeight:500, color:page===key?(key==="bluechips"?"#1e90ff":key==="mercado"?"#ffa500":"#00e87a"):"rgba(255,255,255,0.4)", letterSpacing:"0.04em", transition:"all 0.2s", whiteSpace:"nowrap" }}>{label}</button>
+        {[{label:"Dashboard",key:"home"},{label:"Blue Chips",key:"bluechips"},{label:"Commodities",key:"commodities"},{label:"Análises",key:"mercado"},{label:"Blog",key:"blog"}].map(({label,key}) => (
+          <button key={key} onClick={() => setPage(key)} style={{ background:page===key?(key==="bluechips"?"rgba(30,144,255,0.15)":key==="commodities"?"rgba(255,140,0,0.15)":key==="mercado"?"rgba(255,165,0,0.15)":"rgba(0,232,122,0.1)"):"none", border:page===key?(key==="bluechips"?"1px solid rgba(30,144,255,0.4)":key==="commodities"?"1px solid rgba(255,140,0,0.4)":key==="mercado"?"1px solid rgba(255,165,0,0.4)":"1px solid rgba(0,232,122,0.25)"):"1px solid transparent", borderRadius:"8px", padding:"6px 12px", cursor:"pointer", fontFamily:"'DM Mono',monospace", fontSize:"11px", fontWeight:500, color:page===key?(key==="bluechips"?"#1e90ff":key==="commodities"?"#ff8c00":key==="mercado"?"#ffa500":"#00e87a"):"rgba(255,255,255,0.4)", letterSpacing:"0.04em", transition:"all 0.2s", whiteSpace:"nowrap" }}>{label}</button>
         ))}
       </div>
     </nav>
@@ -286,6 +286,161 @@ function BlueChipsPage() {
       <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
         {loading ? Array.from({length:10},(_,i) => <SkeletonCard key={i} rank={i+1} />) : chips.map((s,i) => <BlueChipCard key={s.ticker} stock={s} rank={i+1} />)}
       </div>
+      <div style={{ maxWidth:"728px", margin:"32px auto 0", height:"90px", border:"1px dashed rgba(255,255,255,0.08)", borderRadius:"8px", display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,0.02)" }}>
+        <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.18)", letterSpacing:"0.15em", textTransform:"uppercase" }}>Espaço publicitário · 728×90</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── PÁGINA COMMODITIES ───────────────────────────────────────────────────────
+const COMMODITIES = [
+  { ticker:"BZ%3DF",  nome:"Petróleo Brent", unidade:"por barril",    grupo:"Energia"    },
+  { ticker:"CL%3DF",  nome:"Petróleo WTI",   unidade:"por barril",    grupo:"Energia"    },
+  { ticker:"GC%3DF",  nome:"Ouro",           unidade:"por oz troy",   grupo:"Metais"     },
+  { ticker:"SI%3DF",  nome:"Prata",          unidade:"por oz troy",   grupo:"Metais"     },
+  { ticker:"ZS%3DF",  nome:"Soja",           unidade:"por bushel",    grupo:"Agrícolas"  },
+  { ticker:"ZC%3DF",  nome:"Milho",          unidade:"por bushel",    grupo:"Agrícolas"  },
+  { ticker:"KC%3DF",  nome:"Café",           unidade:"por libra-peso",grupo:"Agrícolas"  },
+];
+
+function CommoditySparkline({ historico, cor }) {
+  if (!historico || historico.length < 2) return <div style={{ width:"72px", height:"32px" }} />;
+  const vals = historico.map(p => p.close).filter(Boolean);
+  if (vals.length < 2) return <div style={{ width:"72px", height:"32px" }} />;
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+  const W = 72; const H = 32; const PAD = 3;
+  const gH = H - PAD * 2;
+  const toX = (i) => (i / (vals.length - 1)) * W;
+  const toY = (v) => PAD + gH - ((v - minV) / range) * gH;
+  const pts = vals.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(" ");
+  const lastX = toX(vals.length - 1).toFixed(1);
+  const lastY = toY(vals[vals.length - 1]).toFixed(1);
+  const area = `0,${H} ${pts} ${W},${H}`;
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display:"block", overflow:"visible" }}>
+      <polygon points={area} fill={cor} fillOpacity="0.08" />
+      <polyline points={pts} fill="none" stroke={cor} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={lastX} cy={lastY} r="2" fill={cor} />
+    </svg>
+  );
+}
+
+function CommodityCard({ item, dados, historico, loading }) {
+  const isAlta = (dados?.variacao || 0) >= 0;
+  const cor = isAlta ? "#00e87a" : "#ff5050";
+  const preco = dados?.preco;
+  const variacao = dados?.variacao;
+  const vals = (historico || []).map(p => p.close).filter(Boolean);
+  const minV = vals.length ? Math.min(...vals) : null;
+  const maxV = vals.length ? Math.max(...vals) : null;
+
+  const fmt = (n) => {
+    if (n === null || n === undefined) return "—";
+    if (n >= 1000) return n.toLocaleString("en-US", { minimumFractionDigits:0, maximumFractionDigits:0 });
+    if (n >= 100)  return n.toFixed(2);
+    return n.toFixed(2);
+  };
+
+  return (
+    <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"10px", padding:"14px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:"12px", animation:"fadeUp 0.4s ease both" }}>
+      <div style={{ minWidth:0 }}>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.35)", marginBottom:"5px", whiteSpace:"nowrap" }}>{item.nome} · {item.ticker.replace("%3D","=")}</div>
+        {loading || !preco
+          ? <div style={{ height:"20px", width:"80px", background:"rgba(255,255,255,0.07)", borderRadius:"4px", marginBottom:"5px" }} />
+          : <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"20px", color:"#fff", lineHeight:1.2, marginBottom:"3px" }}>${fmt(preco)}</div>
+        }
+        {loading || variacao === undefined
+          ? <div style={{ height:"12px", width:"60px", background:"rgba(255,255,255,0.05)", borderRadius:"4px" }} />
+          : <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"12px", color:cor, fontWeight:600 }}>{isAlta?"▲":"▼"} {isAlta?"+":""}{variacao?.toFixed(2)}% hoje</div>
+        }
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.25)", marginTop:"2px" }}>{item.unidade}</div>
+      </div>
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"4px", flexShrink:0 }}>
+        {loading || !historico
+          ? <div style={{ width:"72px", height:"32px", background:"rgba(255,255,255,0.05)", borderRadius:"4px" }} />
+          : <CommoditySparkline historico={historico} cor={cor} />
+        }
+        {minV !== null && maxV !== null && !loading && (
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"9px", color:"rgba(255,255,255,0.3)", whiteSpace:"nowrap" }}>
+            ↑${fmt(maxV)} ↓${fmt(minV)} · 7d
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CommoditiesPage() {
+  const [dados, setDados] = useState({});
+  const [historicos, setHistoricos] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const timeStr = lastUpdate ? lastUpdate.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" }) : "";
+
+  async function fetchCommodities() {
+    try {
+      const tickers = COMMODITIES.map(c => c.ticker).join(",");
+      const [resQuote, resHist] = await Promise.all([
+        fetch(`https://brapi.dev/api/quote/${tickers}?token=${BRAPI_TOKEN}`).then(r => r.json()).catch(() => ({})),
+        Promise.all(COMMODITIES.map(c =>
+          fetch(`https://brapi.dev/api/quote/${c.ticker}?range=5d&interval=1d&token=${BRAPI_TOKEN}`)
+            .then(r => r.json())
+            .then(d => ({ ticker: c.ticker, hist: d.results?.[0]?.historicalDataPrice || [] }))
+            .catch(() => ({ ticker: c.ticker, hist: [] }))
+        )),
+      ]);
+
+      const novoDados = {};
+      (resQuote.results || []).forEach(r => {
+        if (r?.symbol) novoDados[r.symbol] = { preco: r.regularMarketPrice, variacao: r.regularMarketChangePercent };
+      });
+
+      const novoHist = {};
+      resHist.forEach(({ ticker, hist }) => { novoHist[ticker] = hist; });
+
+      setDados(novoDados);
+      setHistoricos(novoHist);
+      setLastUpdate(new Date());
+      setLoading(false);
+    } catch { setLoading(false); }
+  }
+
+  useEffect(() => { fetchCommodities(); const iv = setInterval(fetchCommodities, 60000); return () => clearInterval(iv); }, []);
+
+  const grupos = [...new Set(COMMODITIES.map(c => c.grupo))];
+
+  return (
+    <div style={{ position:"relative", zIndex:2, maxWidth:"860px", margin:"0 auto" }}>
+      <div style={{ textAlign:"center", marginBottom:"28px" }}>
+        <div style={{ display:"inline-flex", alignItems:"center", gap:"10px", background:"rgba(255,140,0,0.06)", border:"1px solid rgba(255,140,0,0.2)", borderRadius:"6px", padding:"4px 14px", marginBottom:"10px" }}>
+          <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#ff8c00", boxShadow:"0 0 8px #ff8c00", animation:"pulse 2s infinite" }} />
+          <span style={{ fontSize:"10px", letterSpacing:"0.2em", color:"rgba(255,140,0,0.8)", textTransform:"uppercase" }}>Mercado Global · Commodities</span>
+        </div>
+        <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(20px,4vw,28px)", color:"#fff", letterSpacing:"-0.02em", marginBottom:"6px" }}>Mercado de <span style={{ color:"#ff8c00" }}>Commodities</span></h2>
+        <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"rgba(255,255,255,0.3)" }}>Energia, metais e agrícolas · Cotações em USD · Sparkline 7 dias{timeStr ? ` · Atualizado às ${timeStr}` : ""}</p>
+      </div>
+
+      {grupos.map(grupo => (
+        <div key={grupo} style={{ marginBottom:"24px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"12px", marginBottom:"12px" }}>
+            <div style={{ height:"1px", flex:1, background:"rgba(255,140,0,0.2)" }} />
+            <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,140,0,0.6)", letterSpacing:"0.15em", textTransform:"uppercase", whiteSpace:"nowrap" }}>{grupo}</span>
+            <div style={{ height:"1px", flex:1, background:"rgba(255,140,0,0.2)" }} />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:"10px" }}>
+            {COMMODITIES.filter(c => c.grupo === grupo).map(item => {
+              const tickerDecoded = item.ticker.replace("%3D","=");
+              const d = dados[tickerDecoded] || dados[item.ticker];
+              const h = historicos[item.ticker];
+              return <CommodityCard key={item.ticker} item={item} dados={d} historico={h} loading={loading} />;
+            })}
+          </div>
+        </div>
+      ))}
+
       <div style={{ maxWidth:"728px", margin:"32px auto 0", height:"90px", border:"1px dashed rgba(255,255,255,0.08)", borderRadius:"8px", display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,0.02)" }}>
         <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.18)", letterSpacing:"0.15em", textTransform:"uppercase" }}>Espaço publicitário · 728×90</span>
       </div>
@@ -780,6 +935,7 @@ export default function App() {
       <Navbar page={page} setPage={setPage}/>
       {page==="home"      && <DashboardPage timeStr={timeStr} altas={altas} baixas={baixas} loading={loading} erro={erro}/>}
       {page==="bluechips" && <BlueChipsPage/>}
+      {page==="commodities" && <CommoditiesPage/>}
       {page==="mercado"   && <MercadoPage/>}
       {page==="blog"      && <BlogPage onDashboard={()=>setPage("home")}/>}
       <div style={{ position:"relative", zIndex:2, textAlign:"center", marginTop:"40px", fontSize:"10px", color:"rgba(255,255,255,0.15)", letterSpacing:"0.08em" }}>
