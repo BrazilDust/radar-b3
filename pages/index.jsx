@@ -299,9 +299,18 @@ const COMMODITIES = [
   { ticker:"CL%3DF",  nome:"Petróleo WTI",   unidade:"por barril",    grupo:"Energia"    },
   { ticker:"GC%3DF",  nome:"Ouro",           unidade:"por oz troy",   grupo:"Metais"     },
   { ticker:"SI%3DF",  nome:"Prata",          unidade:"por oz troy",   grupo:"Metais"     },
+  { ticker:"HG%3DF",  nome:"Cobre",          unidade:"por libra-peso",grupo:"Metais"     },
+  { ticker:"PL%3DF",  nome:"Platina",        unidade:"por oz troy",   grupo:"Metais"     },
+  { ticker:"ALI%3DF", nome:"Alumínio",       unidade:"por libra-peso",grupo:"Metais"     },
+  { ticker:"ZNC%3DF", nome:"Zinco",          unidade:"por libra-peso",grupo:"Metais"     },
   { ticker:"ZS%3DF",  nome:"Soja",           unidade:"por bushel",    grupo:"Agrícolas"  },
   { ticker:"ZC%3DF",  nome:"Milho",          unidade:"por bushel",    grupo:"Agrícolas"  },
+  { ticker:"ZW%3DF",  nome:"Trigo",          unidade:"por bushel",    grupo:"Agrícolas"  },
   { ticker:"KC%3DF",  nome:"Café",           unidade:"por libra-peso",grupo:"Agrícolas"  },
+  { ticker:"SB%3DF",  nome:"Açúcar",         unidade:"por libra-peso",grupo:"Agrícolas"  },
+  { ticker:"CC%3DF",  nome:"Cacau",          unidade:"por tonelada",  grupo:"Agrícolas"  },
+  { ticker:"GF%3DF",  nome:"Boi Gordo",      unidade:"por libra-peso",grupo:"Agrícolas"  },
+  { ticker:"CT%3DF",  nome:"Algodão",        unidade:"por libra-peso",grupo:"Agrícolas"  },
 ];
 
 function CommoditySparkline({ historico, cor }) {
@@ -348,11 +357,11 @@ function CommodityCard({ item, dados, historico, loading }) {
     <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"10px", padding:"14px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:"12px", animation:"fadeUp 0.4s ease both" }}>
       <div style={{ minWidth:0 }}>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"10px", color:"rgba(255,255,255,0.35)", marginBottom:"5px", whiteSpace:"nowrap" }}>{item.nome} · {item.ticker.replace("%3D","=")}</div>
-        {loading || !preco
+        {!preco
           ? <div style={{ height:"20px", width:"80px", background:"rgba(255,255,255,0.07)", borderRadius:"4px", marginBottom:"5px" }} />
           : <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"20px", color:"#fff", lineHeight:1.2, marginBottom:"3px" }}>${fmt(preco)}</div>
         }
-        {loading || variacao === undefined
+        {variacao === undefined || variacao === null
           ? <div style={{ height:"12px", width:"60px", background:"rgba(255,255,255,0.05)", borderRadius:"4px" }} />
           : <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"12px", color:cor, fontWeight:600 }}>{isAlta?"▲":"▼"} {isAlta?"+":""}{variacao?.toFixed(2)}% hoje</div>
         }
@@ -382,20 +391,28 @@ function CommoditiesPage() {
 
   async function fetchCommodities() {
     try {
-      const tickers = COMMODITIES.map(c => c.ticker).join(",");
-      const [resQuote, resHist] = await Promise.all([
-        fetch(`https://brapi.dev/api/quote/${tickers}?token=${BRAPI_TOKEN}`).then(r => r.json()).catch(() => ({})),
-        Promise.all(COMMODITIES.map(c =>
-          fetch(`https://brapi.dev/api/quote/${c.ticker}?range=5d&interval=1d&token=${BRAPI_TOKEN}`)
+      const [resQuotes, resHist] = await Promise.all([
+        Promise.all(COMMODITIES.map(c => {
+          const td = c.ticker.replace(/%3D/g,"=");
+          return fetch(`https://brapi.dev/api/quote/${td}?token=${BRAPI_TOKEN}`)
+            .then(r => r.json())
+            .then(d => ({ ticker: c.ticker, result: d.results?.[0] || null }))
+            .catch(() => ({ ticker: c.ticker, result: null }));
+        })),
+        Promise.all(COMMODITIES.map(c => {
+          const td = c.ticker.replace(/%3D/g,"=");
+          return fetch(`https://brapi.dev/api/quote/${td}?range=5d&interval=1d&token=${BRAPI_TOKEN}`)
             .then(r => r.json())
             .then(d => ({ ticker: c.ticker, hist: d.results?.[0]?.historicalDataPrice || [] }))
-            .catch(() => ({ ticker: c.ticker, hist: [] }))
-        )),
+            .catch(() => ({ ticker: c.ticker, hist: [] }));
+        })),
       ]);
 
       const novoDados = {};
-      (resQuote.results || []).forEach(r => {
-        if (r?.symbol) novoDados[r.symbol] = { preco: r.regularMarketPrice, variacao: r.regularMarketChangePercent };
+      resQuotes.forEach(({ ticker, result }) => {
+        if (result?.regularMarketPrice) {
+          novoDados[ticker] = { preco: result.regularMarketPrice, variacao: result.regularMarketChangePercent };
+        }
       });
 
       const novoHist = {};
@@ -432,8 +449,7 @@ function CommoditiesPage() {
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:"10px" }}>
             {COMMODITIES.filter(c => c.grupo === grupo).map(item => {
-              const tickerDecoded = item.ticker.replace("%3D","=");
-              const d = dados[tickerDecoded] || dados[item.ticker];
+              const d = dados[item.ticker];
               const h = historicos[item.ticker];
               return <CommodityCard key={item.ticker} item={item} dados={d} historico={h} loading={loading} />;
             })}
