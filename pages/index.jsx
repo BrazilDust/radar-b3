@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Head from "next/head";
 
 const BRAPI_TOKEN = process.env.NEXT_PUBLIC_BRAPI_TOKEN;
 
@@ -11,9 +12,50 @@ const BRAPI_TOKEN = process.env.NEXT_PUBLIC_BRAPI_TOKEN;
 //             { type: "image",   src: "/arquivo.png", alt: "..." }
 const blogPosts = [
   {
+    id: 7,
+    tag: "Educação",
+    tagColor: "#4ab8ff",
+    keywords: "timeframe, análise técnica, gráfico diário, swing trade, day trade, tendência, período gráfico, candlestick, B3, horizonte temporal, múltiplos timeframes",
+    titulo: "Timeframe na Análise Técnica: Influência do Horizonte Temporal na Interpretação dos Mercados",
+    resumo: "Entenda como a escolha do período gráfico transforma a leitura do mercado — e como usá-la a seu favor para operar com mais precisão e consistência na B3.",
+    tempo: "7 min",
+    data: "30 Abr 2025",
+    conteudo: [
+      { type: "heading", value: "O que é um Timeframe?" },
+      { type: "text", value: "Na análise técnica, um dos conceitos fundamentais para a correta interpretação dos gráficos é o timeframe, ou seja, o período de tempo utilizado para observar a evolução dos preços de um ativo. Embora muitas vezes negligenciado por iniciantes, o timeframe exerce influência direta sobre a leitura do mercado, a identificação de tendências e, consequentemente, a tomada de decisão." },
+      { type: "text", value: "O timeframe representa a unidade temporal de cada elemento do gráfico. Em termos práticos, ele define se cada candle corresponde a minutos, horas, dias, semanas ou até meses. Essa escolha altera significativamente a forma como o comportamento do preço é percebido." },
+      { type: "heading", value: "A Natureza Relativa da Análise Gráfica" },
+      { type: "text", value: "Um ponto essencial é compreender que os princípios da análise técnica — como tendência, suporte, resistência e padrões gráficos — permanecem os mesmos em qualquer timeframe. No entanto, a interpretação desses elementos muda conforme a escala temporal." },
+      { type: "text", value: "Por exemplo, um movimento que parece altamente volátil em um gráfico de 5 minutos pode ser apenas uma pequena oscilação dentro de uma tendência de alta bem definida quando observado em um gráfico diário. Da mesma forma, uma queda acentuada no curto prazo pode representar apenas uma correção saudável em uma tendência de longo prazo." },
+      { type: "text", value: "Esse comportamento decorre da natureza fractal dos mercados financeiros, onde padrões semelhantes se repetem em diferentes escalas de tempo." },
+      { type: "heading", value: "Relação entre Timeframe e Estilo de Operação" },
+      { type: "text", value: "A escolha do timeframe está diretamente associada ao estilo de atuação do operador no mercado. Embora não seja necessário definir essa preferência no início, é importante compreender como diferentes horizontes temporais influenciam a dinâmica das operações." },
+      { type: "text", value: "Operadores de curto prazo, como os chamados day traders, concentram suas análises em gráficos de minutos e horas. Seu objetivo é capturar pequenas variações de preço ao longo do dia, encerrando todas as posições antes do fechamento do mercado. Nesse contexto, movimentos rápidos e mudanças frequentes são predominantes." },
+      { type: "text", value: "Por outro lado, operadores que mantêm posições por alguns dias ou semanas — frequentemente chamados de swing traders — utilizam gráficos diários e semanais. Eles buscam movimentos mais amplos, com menor frequência de operações e maior foco na estrutura do mercado." },
+      { type: "text", value: "Já investidores de longo prazo tendem a utilizar gráficos semanais ou mensais, analisando tendências que se desenvolvem ao longo de meses ou anos. Nesse caso, o foco está menos nas oscilações de curto prazo e mais nos ciclos estruturais do mercado." },
+      { type: "image", src: "/timeframe-estilos.png", alt: "Comparação entre Day Trader, Active Trader e Buy & Hold — diferenças de horizonte temporal e estilo de operação" },
+      { type: "heading", value: "Universalidade das Ferramentas Técnicas" },
+      { type: "text", value: "Um aspecto importante a ser destacado é que os indicadores técnicos — como médias móveis, osciladores e indicadores de momentum — são aplicáveis em qualquer timeframe. A matemática por trás dessas ferramentas permanece a mesma independentemente da escala temporal." },
+      { type: "text", value: "No entanto, o significado dos sinais gerados por esses indicadores varia conforme o horizonte analisado. Um cruzamento de médias móveis em um gráfico de 5 minutos pode indicar uma oportunidade de curtíssimo prazo, enquanto o mesmo padrão em um gráfico semanal pode sinalizar uma mudança estrutural relevante." },
+      { type: "image", src: "/timeframe-picking.png", alt: "Picking A Time Frame: não é necessário decidir agora, os conceitos funcionam em qualquer período, mas quanto maior o timeframe mais estabelecida a tendência" },
+      { type: "heading", value: "Tempo e Força da Tendência" },
+      { type: "text", value: "Existe uma relação direta entre a duração de uma tendência e sua robustez. Tendências que se desenvolvem ao longo de semanas ou meses tendem a ser mais consistentes, pois refletem a atuação de participantes institucionais e mudanças mais profundas no equilíbrio entre oferta e demanda." },
+      { type: "text", value: "Em contraste, movimentos observados em timeframes muito curtos são mais suscetíveis a ruídos, volatilidade momentânea e reações emocionais do mercado. Isso não os torna inválidos, mas exige uma abordagem operacional mais ágil e disciplinada." },
+      { type: "heading", value: "Como Definir o Seu Timeframe" },
+      { type: "text", value: "Um ponto frequentemente destacado é que o operador não precisa definir seu timeframe de atuação de forma antecipada. Na prática, essa escolha tende a surgir naturalmente com a experiência." },
+      { type: "text", value: "Por meio de simulações, testes históricos (backtesting) e prática em ambiente simulado (paper trading), o operador passa a identificar qual horizonte temporal melhor se adapta ao seu perfil psicológico, disponibilidade de tempo e tolerância ao risco." },
+      { type: "text", value: "Portanto, o timeframe não deve ser encarado como uma decisão rígida inicial, mas como uma variável que evolui junto com o desenvolvimento do operador." },
+      { type: "heading", value: "Exemplo Prático: Três Timeframes, Uma Decisão" },
+      { type: "text", value: "Considere a análise de uma ação utilizando três diferentes timeframes: semanal, diário e intradiário. No gráfico semanal, observa-se uma tendência de alta consistente ao longo de vários meses, caracterizada por topos e fundos ascendentes — o contexto macro é favorável." },
+      { type: "text", value: "Ao analisar o gráfico diário, nota-se que o preço entrou em uma fase de correção, aproximando-se de um nível de suporte previamente estabelecido. Essa movimentação, à primeira vista negativa, pode ser interpretada como uma retração dentro de uma tendência maior de alta." },
+      { type: "text", value: "Por fim, no gráfico de 1 hora, identifica-se a formação de um pequeno rompimento após um período de consolidação — um possível sinal de retomada da tendência principal. A integração dessas três análises permite uma tomada de decisão mais robusta, alinhada com a tendência de longo prazo e com um gatilho preciso de entrada." },
+    ],
+  },
+  {
     id: 6,
     tag: "Educação",
     tagColor: "#4ab8ff",
+    keywords: "análise técnica, candlestick, vela japonesa, timeframe, paper trading, backtesting, plataformas de trading, TradingView, swing trade, B3, securities, mercado financeiro",
     titulo: "A Linguagem Universal da Análise Técnica: Ferramentas, Simulação e Plataformas",
     resumo: "Candlesticks, timeframes, paper trading e backtesting — entenda as ferramentas universais da análise técnica e como usá-las para operar na B3 com mais segurança.",
     tempo: "8 min",
@@ -52,6 +94,7 @@ const blogPosts = [
   },
   {
     id: 5, tag: "Análise", tagColor: "#7c8aff",
+    keywords: "análise técnica, análise fundamentalista, ITUB4, ROE, médias móveis, MACD, RSI, timing de mercado, B3, ações, investimento, swing trade",
     titulo: "Análise Técnica ou Fundamentalista: qual usar para operar na B3?",
     resumo: "Se você já ficou em dúvida sobre qual método usar antes de comprar uma ação, este artigo é para você. Entenda as diferenças, as aplicações e como combinar as duas abordagens.",
     tempo: "10 min", data: "22 Abr 2025",
@@ -59,6 +102,7 @@ const blogPosts = [
   },
   {
     id: 1, tag: "Básico", tagColor: "#00e87a",
+    keywords: "maiores altas B3, ações em alta, bolsa de valores, pregão, variação percentual, volume financeiro, momentum, trader, B3, bolsa brasileira",
     titulo: "O que são as maiores altas da B3?",
     resumo: "Entenda como funciona o ranking de maiores altas diárias e por que ele é uma das ferramentas mais usadas por traders de curto prazo na bolsa brasileira.",
     tempo: "4 min", data: "18 Abr 2025",
@@ -66,6 +110,7 @@ const blogPosts = [
   },
   {
     id: 2, tag: "Análise", tagColor: "#f0a500",
+    keywords: "volume financeiro, liquidez, VWAP, pregão, B3, indicadores técnicos, análise de volume, ações, bolsa de valores, trader",
     titulo: "Volume financeiro: o termômetro da liquidez",
     resumo: "O volume financeiro é um dos indicadores mais ignorados por iniciantes e mais valorizados por traders experientes. Veja como interpretá-lo no contexto da B3.",
     tempo: "6 min", data: "15 Abr 2025",
@@ -73,6 +118,7 @@ const blogPosts = [
   },
   {
     id: 3, tag: "Estratégia", tagColor: "#7c8aff",
+    keywords: "swing trade, day trade, B3, estratégia de trading, imposto de renda ações, tributação day trade, análise técnica, bolsa brasileira, perfil investidor",
     titulo: "Swing Trade vs Day Trade: qual combina com você?",
     resumo: "Dois estilos, dois perfis de operador. Entenda as diferenças práticas entre swing trade e day trade no mercado brasileiro e como escolher o mais adequado.",
     tempo: "8 min", data: "10 Abr 2025",
@@ -80,6 +126,7 @@ const blogPosts = [
   },
   {
     id: 4, tag: "Guia", tagColor: "#ff6b6b",
+    keywords: "abrir conta corretora, XP Investimentos, Rico, Clear, BTG, Inter, CVM, B3, investir na bolsa, home broker, como investir, iniciante",
     titulo: "Como abrir conta em uma corretora para investir na B3",
     resumo: "Passo a passo completo para abrir sua conta em uma corretora brasileira e começar a investir na bolsa de valores com segurança.",
     tempo: "5 min", data: "05 Abr 2025",
@@ -932,7 +979,22 @@ export default function App() {
     } catch(e) { setErro("Não foi possível carregar os dados. Tentando novamente..."); setLoading(false); }
   }
   useEffect(() => { fetchDados(); const iv=setInterval(fetchDados,60000); return ()=>clearInterval(iv); }, []);
+  const metaAtual = (() => {
+    const defaultMeta = { title: "Radar B3 — Monitoramento de Ações da Bolsa Brasileira", description: "Acompanhe as maiores altas e baixas da B3 em tempo real. Dados de ações, índices, commodities e análises do mercado financeiro brasileiro.", keywords: "B3, bolsa de valores, ações, maiores altas, maiores baixas, mercado financeiro, radar b3, análise técnica" };
+    if (page !== "blog") return defaultMeta;
+    return defaultMeta;
+  })();
+
   return (
+    <>
+      <Head>
+        <title>{metaAtual.title}</title>
+        <meta name="description" content={metaAtual.description} />
+        <meta name="keywords" content={metaAtual.keywords} />
+        <meta property="og:title" content={metaAtual.title} />
+        <meta property="og:description" content={metaAtual.description} />
+        <meta property="og:site_name" content="Radar B3" />
+      </Head>
     <div style={{ minHeight:"100vh", background:"#0a0c0f", fontFamily:"'DM Mono',monospace", padding:"24px 16px 60px", position:"relative", overflow:"hidden" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500;600&display=swap');
@@ -958,5 +1020,6 @@ export default function App() {
         RADAR B3 · Dados com fins informativos · Não constitui recomendação de investimento
       </div>
     </div>
+    </>
   );
 }
