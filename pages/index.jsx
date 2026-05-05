@@ -12,6 +12,54 @@ const BRAPI_TOKEN = process.env.NEXT_PUBLIC_BRAPI_TOKEN;
 //             { type: "image",   src: "/arquivo.png", alt: "..." }
 const blogPosts = [
   {
+    id: 8,
+    tag: "Análise Técnica",
+    tagColor: "#ff6b6b",
+    keywords: "breakout, retracement, rompimento, suporte, resistência, falso rompimento, pullback, análise técnica, trading range, stochastic oscillator, PETR4, B3",
+    titulo: "Breakouts e Retracements: Identificando Rompimentos e Correções no Mercado",
+    resumo: "Aprenda a distinguir uma ruptura verdadeira de uma correção temporária — e como usar essa habilidade para tomar decisões mais precisas na B3.",
+    tempo: "9 min",
+    data: "05 Mai 2025",
+    conteudo: [
+      { type: "heading", value: "Faixas de Negociação e Tendências de Mercado" },
+      { type: "text", value: "Todo ativo financeiro negociado em mercado — seja uma ação, um contrato futuro ou qualquer outro instrumento — tende a operar, ao longo de determinado período, dentro de uma faixa de preço definida por um nível mínimo (suporte) e um nível máximo (resistência). Essa faixa é chamada de trading range ou intervalo de negociação. O período em que o ativo permanece nessa faixa pode variar amplamente: horas, dias, semanas ou meses, dependendo do ativo e do contexto de mercado." },
+      { type: "image", src: "/breakout-suporte-resistencia.png", alt: "Ilustração de suporte e resistência em uma faixa de negociação com rompimento de alta" },
+      { type: "text", value: "Dentro dessa faixa, é comum observar tendências gerais de comportamento de preço, que podem ser classificadas em três tipos: Tendência lateral (flat) — o preço oscila sem uma direção clara, movendo-se de forma horizontal; Tendência de alta (uptrend) — o preço apresenta topos e fundos sucessivamente mais altos; Tendência de baixa (downtrend) — o preço apresenta topos e fundos sucessivamente mais baixos." },
+      { type: "image", src: "/breakout-tendencias.png", alt: "Comparação entre Bulls (uptrend), Flat (sideways trend) e Bear (downtrend)" },
+      { type: "text", value: "Essas tendências, no entanto, não são permanentes. A qualquer momento, um evento externo ou interno ao mercado pode alterar a dinâmica de preço e romper o padrão vigente. A capacidade de identificar corretamente quando isso ocorre — e distinguir uma ruptura verdadeira de um movimento temporário — é uma das habilidades mais importantes do analista técnico." },
+
+      { type: "heading", value: "Breakout: A Ruptura de Padrão" },
+      { type: "text", value: "Um breakout (rompimento) ocorre quando o preço de um ativo ultrapassa os limites da sua faixa de negociação ou quebra uma tendência estabelecida, iniciando um novo movimento direcional. Em termos práticos, significa que a dinâmica de oferta e demanda se alterou de forma significativa, levando o preço a patamares anteriormente não alcançados." },
+      { type: "text", value: "O princípio fundamental por trás disso é que as tendências se mantêm até que algo as rompa. Esse 'algo' pode ser: uma notícia macroeconômica relevante (ex.: decisão de taxa de juros pelo Banco Central); um resultado corporativo surpreendente (ex.: lucro muito acima ou abaixo do esperado); um evento geopolítico de impacto global; ou um rumor de mercado com forte repercussão." },
+      { type: "text", value: "Quando esse tipo de evento ocorre, a reação dos participantes tende a ser emocional e acelerada. Investidores que interpretam a notícia de forma negativa podem entrar em pânico e vender rapidamente (panic selling), enquanto aqueles que veem uma oportunidade de alta podem comprar impulsionados pelo FOMO (Fear of Missing Out — medo de perder a oportunidade). Essa dinâmica gera o movimento brusco de preço característico de um breakout." },
+      { type: "text", value: "Um breakout pode resultar em: Novo uptrend — o ativo rompe a resistência superior e inicia uma nova fase de alta; Novo downtrend — o ativo rompe o suporte inferior e inicia uma nova fase de queda; False breakout (falso rompimento) — o preço parece romper, mas recua rapidamente, voltando à faixa anterior." },
+
+      { type: "heading", value: "False Breakout: Quando Grandes Agentes Interferem" },
+      { type: "text", value: "O falso rompimento é um dos fenômenos mais enganosos da análise técnica. Ele ocorre quando o preço ultrapassa temporariamente um nível de suporte ou resistência, mas sem sustentação real por parte do sentimento de mercado. Em vez disso, o movimento é causado por agentes de grande porte — instituições financeiras, fundos de investimento, gestoras — que, por razões alheias à análise técnica convencional, precisam realizar transações volumosas." },
+      { type: "text", value: "Esse fenômeno é frequentemente associado ao chamado position squaring (ajuste de posição), que nada mais é do que grandes players reequilibrando suas carteiras. Exemplos típicos incluem: inclusão em índice — quando uma ação é adicionada ao Ibovespa ou S&P 500, todos os fundos passivos são obrigados a comprá-la, gerando volume artificial; recompra de ações (buyback) — quando uma grande empresa recompra suas próprias ações, pressionando o preço para cima de forma que pode confundir o analista; e lock-in de ganhos — gestores que liquidam posições lucrativas próximo ao fechamento do ano para travar seus resultados, simulando um rompimento de baixa." },
+      { type: "text", value: "Em todos esses casos, a movimentação do preço não reflete uma mudança genuína no sentimento do mercado, e o preço tende a retornar à faixa anterior após o ajuste ser concluído." },
+
+      { type: "heading", value: "Retracement: A Correção Temporária" },
+      { type: "text", value: "O retracement (ou pullback) é um movimento contrário à tendência principal, de caráter temporário e de menor magnitude. Ao contrário do breakout, que sinaliza uma mudança de direção duradoura, o retracement é apenas uma 'respirada' do mercado antes de retomar a tendência dominante." },
+      { type: "text", value: "As causas mais comuns de um retracement incluem: reposicionamento de grandes players — fundos e instituições ajustando suas posições sem alterar a tendência de fundo; correção técnica — quando o mercado percebe que o preço se moveu rápido demais em uma direção; e condição de sobrecompra ou sobrevenda — situações em que praticamente todos os participantes dispostos a comprar já compraram (sobrecomprado) ou todos os que queriam vender já venderam (sobrevendido), gerando um ajuste espontâneo." },
+      { type: "image", src: "/breakout-retracement-grafico.png", alt: "Gráfico mostrando retracements dentro de uma tendência de alta e o momento em que a correção se torna uma reversão" },
+
+      { type: "heading", value: "Identificando Retracements com Indicadores" },
+      { type: "text", value: "A análise técnica oferece ferramentas específicas para auxiliar na identificação de retracements, evitando confundi-los com breakouts verdadeiros. O Oscilador Estocástico é um indicador que mede a posição do preço atual em relação à sua faixa de variação ao longo de um período determinado. Quando o oscilador atinge a zona de sobrecompra (geralmente acima de 80) ou sobrevenda (abaixo de 20), isso indica que o movimento atual pode estar se esgotando e um retracement pode ser iminente." },
+      { type: "image", src: "/breakout-stochastic.png", alt: "Stochastic Oscillator indicando zonas de sobrecompra (overbought) e sobrevenda (oversold)" },
+      { type: "text", value: "Outro sinal importante é a divergência entre volume e preço: quando o volume de negociações aumenta significativamente, mas o preço não acompanha esse aumento com igual intensidade, significa que o mercado está perdendo força. Isso pode antecipar tanto um retracement quanto, em casos mais severos, um breakout na direção oposta." },
+
+      { type: "heading", value: "A Difícil Distinção entre Breakout e Retracement" },
+      { type: "text", value: "Um dos desafios centrais da análise técnica é justamente distinguir, em tempo real, se um movimento contrário à tendência é um simples retracement (temporário) ou o início de um breakout (nova tendência). Esta distinção é fundamental para a tomada de decisão: entrar ou sair de uma posição no momento errado pode significar perdas significativas." },
+      { type: "text", value: "É importante reconhecer que retracements podem evoluir para reversões completas de tendência. O que parece inicialmente uma correção temporária pode se consolidar como um novo downtrend ou uptrend. Por isso, a análise técnica trabalha com confirmação de sinais — o uso de múltiplos indicadores de forma combinada para aumentar a probabilidade de se estar diante de um movimento real, e não de um falso sinal." },
+
+      { type: "heading", value: "Exemplo Prático: PETR4 na B3" },
+      { type: "text", value: "Suponha que PETR4 venha operando, nas últimas 6 semanas, dentro de uma faixa de R$ 36,00 a R$ 40,00. Situação 1 — Breakout real: o governo anuncia uma mudança na política de preços de combustíveis favorável à companhia. O mercado reage com forte volume de compras. O preço rompe R$ 40,00 com alto volume e segue em alta nos dias seguintes — um breakout legítimo." },
+      { type: "text", value: "Situação 2 — False breakout: um grande fundo internacional precisa, por obrigação regulatória, liquidar parte de sua posição em PETR4. As vendas causam queda expressiva, que perfura o suporte de R$ 36,00 por dois dias. Porém, sem notícia negativa relevante e com volume de venda em queda, o preço retorna à faixa anterior — um falso rompimento causado por position squaring." },
+      { type: "text", value: "Situação 3 — Retracement: após o breakout de alta, o preço sobe para R$ 44,00. O Estocástico entra na zona de sobrecompra. O ativo recua para R$ 41,50 por alguns dias. Porém, sem notícia negativa e com volume moderado, trata-se de um retracement — uma correção saudável antes da retomada da tendência. Utilizando o Estocástico + análise de volume, o trader identifica o pullback como ponto de entrada favorável e mantém — ou até aumenta — sua posição comprada." },
+    ],
+  },
+  {
     id: 7,
     tag: "Educação",
     tagColor: "#4ab8ff",
@@ -865,9 +913,11 @@ function BlogPostView({ post, onBack, onDashboard }) {
   );
 }
 
-function BlogPage({ onDashboard }) {
+function BlogPage({ onDashboard, onPostOpen }) {
   const [postAberto, setPostAberto] = useState(null);
-  if (postAberto) return <BlogPostView post={postAberto} onBack={()=>setPostAberto(null)} onDashboard={onDashboard} />;
+  const abrirPost = (post) => { setPostAberto(post); if(onPostOpen) onPostOpen(post); };
+  const fecharPost = () => { setPostAberto(null); if(onPostOpen) onPostOpen(null); };
+  if (postAberto) return <BlogPostView post={postAberto} onBack={fecharPost} onDashboard={onDashboard} />;
   return (
     <div style={{ position:"relative", zIndex:2, maxWidth:"860px", margin:"0 auto" }}>
       <div style={{ marginBottom:"28px", textAlign:"center" }}>
@@ -876,7 +926,7 @@ function BlogPage({ onDashboard }) {
         <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>Conteúdo para traders e investidores da bolsa brasileira</p>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:"16px" }}>
-        {blogPosts.map((post,i)=><BlogCard key={post.id} post={post} onClick={setPostAberto} index={i}/>)}
+        {blogPosts.map((post,i)=><BlogCard key={post.id} post={post} onClick={abrirPost} index={i}/>)}
       </div>
     </div>
   );
@@ -979,10 +1029,22 @@ export default function App() {
     } catch(e) { setErro("Não foi possível carregar os dados. Tentando novamente..."); setLoading(false); }
   }
   useEffect(() => { fetchDados(); const iv=setInterval(fetchDados,60000); return ()=>clearInterval(iv); }, []);
+  const [postAtivo, setPostAtivo] = useState(null);
+
   const metaAtual = (() => {
-    const defaultMeta = { title: "Radar B3 — Monitoramento de Ações da Bolsa Brasileira", description: "Acompanhe as maiores altas e baixas da B3 em tempo real. Dados de ações, índices, commodities e análises do mercado financeiro brasileiro.", keywords: "B3, bolsa de valores, ações, maiores altas, maiores baixas, mercado financeiro, radar b3, análise técnica" };
-    if (page !== "blog") return defaultMeta;
-    return defaultMeta;
+    if (postAtivo) return {
+      title: `${postAtivo.titulo} — Radar B3`,
+      description: postAtivo.resumo,
+      keywords: postAtivo.keywords || "B3, análise técnica, bolsa de valores, mercado financeiro"
+    };
+    const defaults = {
+      home:       { title: "Radar B3 — Monitoramento de Ações da Bolsa Brasileira", description: "Acompanhe as maiores altas e baixas da B3 em tempo real. Dados de ações, índices e mercado financeiro brasileiro.", keywords: "B3, bolsa de valores, ações, maiores altas, maiores baixas, mercado financeiro, radar b3" },
+      bluechips:  { title: "Blue Chips B3 — Radar B3", description: "Acompanhe as principais ações blue chip da bolsa brasileira ordenadas por volume financeiro.", keywords: "blue chips, B3, PETR4, VALE3, ITUB4, large cap, ações mais negociadas" },
+      commodities:{ title: "Commodities — Radar B3", description: "Preços em tempo real de commodities: petróleo, ouro, prata, cobre, soja, milho, café e mais.", keywords: "commodities, petróleo brent, ouro, prata, cobre, soja, milho, café, mercado futuro" },
+      mercado:    { title: "Análises de Mercado — Radar B3", description: "Distribuição de variações da B3, índices mundiais e busca de ações com gráfico histórico.", keywords: "análise de mercado, ibovespa, índices mundiais, variação ações, B3" },
+      blog:       { title: "Blog — Radar B3", description: "Artigos sobre análise técnica, estratégias de trading e mercado financeiro brasileiro.", keywords: "blog análise técnica, trading B3, swing trade, candlestick, bolsa de valores" },
+    };
+    return defaults[page] || defaults.home;
   })();
 
   return (
@@ -1015,7 +1077,7 @@ export default function App() {
       {page==="bluechips" && <BlueChipsPage/>}
       {page==="commodities" && <CommoditiesPage/>}
       {page==="mercado"   && <MercadoPage/>}
-      {page==="blog"      && <BlogPage onDashboard={()=>setPage("home")}/>}
+      {page==="blog"      && <BlogPage onDashboard={()=>setPage("home")} onPostOpen={setPostAtivo}/>}
       <div style={{ position:"relative", zIndex:2, textAlign:"center", marginTop:"40px", fontSize:"10px", color:"rgba(255,255,255,0.15)", letterSpacing:"0.08em" }}>
         RADAR B3 · Dados com fins informativos · Não constitui recomendação de investimento
       </div>
